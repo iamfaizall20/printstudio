@@ -9,7 +9,14 @@
                 <p class="logo-sub">Smart CNIC Layout Generator</p>
             </div>
         </div>
-        <div class="action-btns">
+
+        <!-- Desktop Action Buttons -->
+        <div class="action-btns desktop-btns">
+            <div class="theme-toggle" (click)="toggleTheme()"
+                [title]="isLightTheme ? 'Switch to Dark' : 'Switch to Light'">
+                <span class="material-icons icon-moon">dark_mode</span>
+                <span class="material-icons icon-sun">light_mode</span>
+            </div>
             <div class="btn-div upload-btn" (click)="openUploadDialog()" [class.disabled]="isLoading">
                 <span class="material-icons">upload_file</span>
                 <span>Upload Images</span>
@@ -20,7 +27,38 @@
                 <span>Download PDF</span>
             </div>
         </div>
+
+        <!-- Mobile Hamburger -->
+        <div class="hamburger" (click)="toggleMobileMenu()" [class.active]="mobileMenuOpen">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
     </nav>
+
+    <!-- Mobile Dropdown Menu -->
+    <div class="mobile-menu" [class.open]="mobileMenuOpen">
+        <div class="mobile-menu-item theme-item" (click)="toggleTheme()">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="material-icons">{{ isLightTheme ? 'light_mode' : 'dark_mode' }}</span>
+                <span>{{ isLightTheme ? 'Light Mode' : 'Dark Mode' }}</span>
+            </div>
+            <div class="theme-pill">
+                <span class="material-icons">{{ isLightTheme ? 'dark_mode' : 'light_mode' }}</span>
+                <span>Switch</span>
+            </div>
+        </div>
+        <div class="mobile-menu-item" (click)="openUploadDialog()" [class.disabled]="isLoading">
+            <span class="material-icons">upload_file</span>
+            <span>Upload Images</span>
+        </div>
+        <div class="mobile-menu-item download" (click)="downloadPDF()"
+            [class.disabled]="!frontImageConfirmed || !backImageConfirmed || isLoading">
+            <span class="material-icons">picture_as_pdf</span>
+            <span>Download PDF</span>
+        </div>
+    </div>
+    <div class="mobile-menu-overlay" *ngIf="mobileMenuOpen" (click)="closeMobileMenu()"></div>
 
     <!-- HERO PAGE -->
     <div class="hero-page">
@@ -33,8 +71,7 @@
             </div>
             <h2 class="empty-title">Start Designing Your CNIC Layout</h2>
             <p class="empty-desc">Upload the front and back side of a CNIC card to generate a smart printable A4 layout
-                with
-                multiple copies.</p>
+                with multiple copies.</p>
             <div class="flow-steps">
                 <div class="step">
                     <div class="step-icon-wrap"><span class="material-icons">upload_file</span></div>
@@ -59,7 +96,6 @@
                         <span class="step-label">Download PDF</span>
                     </div>
                 </div>
-
             </div>
             <div class="btn-div upload-btn cta-btn" (click)="openUploadDialog()">
                 <span class="material-icons">add_photo_alternate</span>
@@ -82,7 +118,7 @@
                             <span>{{ selectedCopies }} {{ selectedCopies === 1 ? 'Copy' : 'Copies' }}</span>
                             <span class="material-icons chevron">expand_more</span>
                         </div>
-                        <div class="dropdown-menu"="copiesDropdownOpen ? 'open' : 'closed'">
+                        <div class="dropdown-menu">
                             <div *ngFor="let c of copyOptions" class="dropdown-item"
                                 [class.selected]="selectedCopies === c.value" [class.disabled]="!c.available"
                                 (click)="c.available && selectCopies(c.value)">
@@ -100,37 +136,47 @@
             </div>
 
             <div class="a4-pages-wrap">
+
                 <!-- Front Page -->
-                <div class="a4-page">
-                    <div class="a4-page-label">
-                        <span class="material-icons">credit_card</span> Front Side
+                <div class="a4-page-group">
+                    <div class="a4-page-heading">
+                        <span class="material-icons">credit_card</span>
+                        <span class="a4-page-heading-text">Front Page</span>
+                        <span class="a4-page-heading-sub">— Front Side</span>
                     </div>
-                    <div class="a4-grid" [class]="'grid-' + selectedCopies">
-                        <div class="cnic-slot" *ngFor="let i of getCopiesArray()">
-                            <img *ngIf="frontImageConfirmed" [src]="frontImageCropped || frontImageSrc" alt="Front CNIC"
-                                class="cnic-img" />
-                            <div *ngIf="!frontImageConfirmed" class="cnic-placeholder">
-                                <span class="material-icons">image_not_supported</span>
+                    <div class="a4-page">
+                        <div class="a4-grid" [class]="'grid-' + selectedCopies">
+                            <div class="cnic-slot" *ngFor="let i of getCopiesArray()">
+                                <img *ngIf="frontImageConfirmed" [src]="frontImageCropped || frontImageSrc"
+                                    alt="Front CNIC" class="cnic-img" />
+                                <div *ngIf="!frontImageConfirmed" class="cnic-placeholder">
+                                    <span class="material-icons">image_not_supported</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Back Page -->
-                <div class="a4-page">
-                    <div class="a4-page-label">
-                        <span class="material-icons">credit_card</span> Back Side
+                <div class="a4-page-group">
+                    <div class="a4-page-heading">
+                        <span class="material-icons">flip_to_back</span>
+                        <span class="a4-page-heading-text">Back Page</span>
+                        <span class="a4-page-heading-sub">— Back Side</span>
                     </div>
-                    <div class="a4-grid" [class]="'grid-' + selectedCopies">
-                        <div class="cnic-slot" *ngFor="let i of getCopiesArray()">
-                            <img *ngIf="backImageConfirmed" [src]="backImageCropped || backImageSrc" alt="Back CNIC"
-                                class="cnic-img" />
-                            <div *ngIf="!backImageConfirmed" class="cnic-placeholder">
-                                <span class="material-icons">image_not_supported</span>
+                    <div class="a4-page">
+                        <div class="a4-grid" [class]="'grid-' + selectedCopies">
+                            <div class="cnic-slot" *ngFor="let i of getCopiesArray()">
+                                <img *ngIf="backImageConfirmed" [src]="backImageCropped || backImageSrc" alt="Back CNIC"
+                                    class="cnic-img" />
+                                <div *ngIf="!backImageConfirmed" class="cnic-placeholder">
+                                    <span class="material-icons">image_not_supported</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostBinding, OnInit, ViewChild } from '@angular/core';
 
 interface CopyOption {
   value: number;
@@ -17,6 +17,9 @@ export class AppComponent implements OnInit {
   @ViewChild('backInput') backInput!: ElementRef<HTMLInputElement>;
   @ViewChild('frontImg') frontImgEl!: ElementRef<HTMLImageElement>;
 
+  // Theme
+  @HostBinding('class.light-theme') isLightTheme = false;
+
   // Image state
   frontImageSrc: string | null = null;
   backImageSrc: string | null = null;
@@ -29,6 +32,9 @@ export class AppComponent implements OnInit {
   showUploadDialog = false;
   showPreviewDialog = false;
   activePreviewTab: 'front' | 'back' = 'front';
+
+  // Mobile menu
+  mobileMenuOpen = false;
 
   // Copies
   selectedCopies = 4;
@@ -51,22 +57,42 @@ export class AppComponent implements OnInit {
   loaderMessage = 'Processing...';
 
   ngOnInit(): void {
-    document.addEventListener('click', () => {
+    // Restore saved theme
+    const saved = localStorage.getItem('printstudio-theme');
+    if (saved === 'light') this.isLightTheme = true;
+
+    document.addEventListener('click', (e) => {
       if (this.copiesDropdownOpen) {
         this.copiesDropdownOpen = false;
       }
     });
   }
 
+  // ─── Theme ────────────────────────────────────────────────────────────────
+  toggleTheme(): void {
+    this.isLightTheme = !this.isLightTheme;
+    localStorage.setItem('printstudio-theme', this.isLightTheme ? 'light' : 'dark');
+    this.mobileMenuOpen = false;
+  }
+
+  // ─── Mobile Menu ─────────────────────────────────────────────────────────
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu(): void {
+    this.mobileMenuOpen = false;
+  }
+
   // ─── Upload Dialog ────────────────────────────────────────────────────────
   openUploadDialog(): void {
+    this.mobileMenuOpen = false;
     this.showUploadDialog = true;
     document.body.style.overflow = 'hidden';
   }
 
   closeUploadDialog(): void {
     this.showUploadDialog = false;
-    // document.body.style.overflow = '';
   }
 
   triggerFrontUpload(): void {
@@ -140,18 +166,18 @@ export class AppComponent implements OnInit {
 
   autoCrop(): void {
     this.cropLoading = true;
-    setTimeout(() => {
-      // Simulate auto-crop by applying a simulated center crop
-      const src =
-        this.activePreviewTab === 'front' ? this.frontImageSrc : this.backImageSrc;
-      if (src) {
-        this.applyCropSimulated(src, this.activePreviewTab);
-      }
+    const src =
+      this.activePreviewTab === 'front' ? this.frontImageSrc : this.backImageSrc;
+    if (src) {
+      this.applyCropSimulated(src, this.activePreviewTab, () => {
+        this.cropLoading = false;
+      });
+    } else {
       this.cropLoading = false;
-    }, 1200);
+    }
   }
 
-  private applyCropSimulated(src: string, side: 'front' | 'back'): void {
+  private applyCropSimulated(src: string, side: 'front' | 'back', done?: () => void): void {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -166,6 +192,10 @@ export class AppComponent implements OnInit {
       const cropped = canvas.toDataURL('image/jpeg', 0.92);
       if (side === 'front') this.frontImageCropped = cropped;
       else this.backImageCropped = cropped;
+      if (done) done();
+    };
+    img.onerror = () => {
+      if (done) done();
     };
     img.src = src;
   }
@@ -196,8 +226,41 @@ export class AppComponent implements OnInit {
 
   endCrop(e: MouseEvent): void {
     if (!this.isCropping || !this.cropStart) return;
+    // Apply the manual crop from cropBox
+    const src =
+      this.activePreviewTab === 'front' ? this.frontImageSrc : this.backImageSrc;
+    if (src && this.cropBox) {
+      this.applyManualCrop(src, this.activePreviewTab);
+    }
     this.isCropping = false;
     this.cropStart = null;
+    this.cropBox = null;
+  }
+
+  private applyManualCrop(src: string, side: 'front' | 'back'): void {
+    if (!this.cropBox) return;
+    const img = new Image();
+    img.onload = () => {
+      // Get the rendered image element to compute scale
+      const imgEl = document.querySelector('.preview-main-img') as HTMLImageElement;
+      if (!imgEl) return;
+      const scaleX = img.naturalWidth / imgEl.clientWidth;
+      const scaleY = img.naturalHeight / imgEl.clientHeight;
+      const cropX = parseInt(this.cropBox!['left']) * scaleX;
+      const cropY = parseInt(this.cropBox!['top']) * scaleY;
+      const cropW = parseInt(this.cropBox!['width']) * scaleX;
+      const cropH = parseInt(this.cropBox!['height']) * scaleY;
+      if (cropW < 10 || cropH < 10) return; // too small, skip
+      const canvas = document.createElement('canvas');
+      canvas.width = cropW;
+      canvas.height = cropH;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      const cropped = canvas.toDataURL('image/jpeg', 0.92);
+      if (side === 'front') this.frontImageCropped = cropped;
+      else this.backImageCropped = cropped;
+    };
+    img.src = src;
   }
 
   resetCrop(): void {
@@ -206,25 +269,30 @@ export class AppComponent implements OnInit {
     this.cropBox = null;
   }
 
+  // FIX: confirmPreview no longer triggers the stuck loading state.
+  // It directly confirms images without closing dialog first to avoid timing bug.
   confirmPreview(): void {
+    // Immediately mark images as confirmed from what we have
+    if (this.frontImageSrc) this.frontImageConfirmed = true;
+    if (this.backImageSrc) this.backImageConfirmed = true;
+
+    // Close dialog and restore scroll
+    this.showPreviewDialog = false;
+    this.isCropping = false;
+    this.cropBox = null;
+    document.body.style.overflow = '';
+
+    // Brief visual feedback loader
     this.loaderMessage = 'Building your layout...';
     this.isLoading = true;
-    this.closePreviewDialog();
     setTimeout(() => {
-      if (this.frontImageSrc) this.frontImageConfirmed = true;
-      if (this.backImageSrc) this.backImageConfirmed = true;
       this.isLoading = false;
-    }, 1400);
+    }, 700);
   }
 
   // ─── Copies ──────────────────────────────────────────────────────────────
   updateCopyAvailability(): void {
     const hasImages = !!(this.frontImageSrc || this.backImageSrc);
-    this.copyOptions = this.copyOptions.map((c) => ({
-      ...c,
-      available: hasImages ? c.value <= 8 : false,
-    }));
-    // Re-enable all valid options (2,4,6,8 are all valid for A4 CNIC)
     this.copyOptions = [
       { value: 2, available: hasImages },
       { value: 4, available: hasImages },
@@ -252,6 +320,7 @@ export class AppComponent implements OnInit {
   // ─── Download PDF ─────────────────────────────────────────────────────────
   downloadPDF(): void {
     if (!this.frontImageConfirmed && !this.backImageConfirmed) return;
+    this.mobileMenuOpen = false;
     this.loaderMessage = 'Generating PDF...';
     this.isLoading = true;
     setTimeout(() => {
