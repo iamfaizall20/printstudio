@@ -68,14 +68,12 @@ export class AppComponent implements OnInit {
     });
   }
 
-  // ─── Theme ────────────────────────────────────────────────────────────────
   toggleTheme(): void {
     this.isLightTheme = !this.isLightTheme;
     localStorage.setItem('printstudio-theme', this.isLightTheme ? 'light' : 'dark');
     this.mobileMenuOpen = false;
   }
 
-  // ─── Mobile Menu ─────────────────────────────────────────────────────────
   toggleMobileMenu(): void {
     this.mobileMenuOpen = !this.mobileMenuOpen;
   }
@@ -317,7 +315,6 @@ export class AppComponent implements OnInit {
     return Array.from({ length: this.selectedCopies }, (_, i) => i);
   }
 
-  // ─── Download PDF ─────────────────────────────────────────────────────────
   downloadPDF(): void {
     if (!this.frontImageConfirmed && !this.backImageConfirmed) return;
     this.mobileMenuOpen = false;
