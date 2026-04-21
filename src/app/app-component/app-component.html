@@ -10,7 +10,6 @@
             </div>
         </div>
 
-        <!-- Desktop Action Buttons -->
         <div class="action-btns desktop-btns">
             <div class="theme-toggle" (click)="toggleTheme()"
                 [title]="isLightTheme ? 'Switch to Dark' : 'Switch to Light'">
@@ -21,18 +20,14 @@
                 <span class="material-icons">upload_file</span>
                 <span>Upload Images</span>
             </div>
-            <div class="btn-div download-btn" (click)="downloadPDF()"
-                [class.disabled]="!frontImageConfirmed || !backImageConfirmed || isLoading">
+            <div class="btn-div download-btn" (click)="downloadPDF()" [class.disabled]="!anyConfirmed || isLoading">
                 <span class="material-icons">picture_as_pdf</span>
                 <span>Download PDF</span>
             </div>
         </div>
 
-        <!-- Mobile Hamburger -->
         <div class="hamburger" (click)="toggleMobileMenu()" [class.active]="mobileMenuOpen">
-            <span></span>
-            <span></span>
-            <span></span>
+            <span></span><span></span><span></span>
         </div>
     </nav>
 
@@ -52,19 +47,22 @@
             <span class="material-icons">upload_file</span>
             <span>Upload Images</span>
         </div>
-        <div class="mobile-menu-item download" (click)="downloadPDF()"
-            [class.disabled]="!frontImageConfirmed || !backImageConfirmed || isLoading">
+        <div class="mobile-menu-item download" (click)="downloadPDF()" [class.disabled]="!anyConfirmed || isLoading">
             <span class="material-icons">picture_as_pdf</span>
             <span>Download PDF</span>
         </div>
     </div>
     <div class="mobile-menu-overlay" *ngIf="mobileMenuOpen" (click)="closeMobileMenu()"></div>
 
+    <!-- Hidden file input for slot uploads -->
+    <input type="file" id="dynamic-file-input" accept="image/*" (change)="onDynamicFileSelect($event)"
+        style="display:none">
+
     <!-- HERO PAGE -->
     <div class="hero-page">
 
         <!-- EMPTY STATE -->
-        <div class="empty-state" *ngIf="!frontImageConfirmed && !backImageConfirmed">
+        <div class="empty-state" *ngIf="!anyConfirmed">
             <div class="empty-icon-wrap">
                 <span class="material-icons empty-icon">contactless</span>
                 <div class="pulse-ring"></div>
@@ -104,21 +102,23 @@
         </div>
 
         <!-- PREVIEW SECTION -->
-        <div class="preview-section" *ngIf="frontImageConfirmed || backImageConfirmed">
+        <div class="preview-section" *ngIf="anyConfirmed">
             <div class="preview-header">
                 <div class="preview-header-left">
                     <span class="material-icons">preview</span>
                     <h2>A4 Print Preview</h2>
                 </div>
                 <div class="preview-controls">
-                    <!-- Copies Dropdown -->
-                    <div class="dropdown-wrap" [class.open]="copiesDropdownOpen">
-                        <div class="dropdown-trigger" (click)="toggleCopiesDropdown()">
+
+                    <!-- Copies Dropdown — FIX: stopPropagation on trigger, (document:click) to close -->
+                    <div class="dropdown-wrap" [class.open]="copiesDropdownOpen"
+                        (document:click)="closeCopiesDropdown()">
+                        <div class="dropdown-trigger" (click)="toggleCopiesDropdown($event)">
                             <span class="material-icons">content_copy</span>
                             <span>{{ selectedCopies }} {{ selectedCopies === 1 ? 'Copy' : 'Copies' }}</span>
                             <span class="material-icons chevron">expand_more</span>
                         </div>
-                        <div class="dropdown-menu">
+                        <div class="dropdown-menu" (click)="$event.stopPropagation()">
                             <div *ngFor="let c of copyOptions" class="dropdown-item"
                                 [class.selected]="selectedCopies === c.value" [class.disabled]="!c.available"
                                 (click)="c.available && selectCopies(c.value)">
@@ -128,6 +128,14 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Add another CNIC design if free slots remain -->
+                    <div class="btn-div add-design-btn sm" (click)="openUploadDialog()" *ngIf="canAddDesign"
+                        title="Add another CNIC design to fill remaining slots">
+                        <span class="material-icons">add_photo_alternate</span>
+                        <span>Add CNIC ({{ freeSlots }} slot{{ freeSlots !== 1 ? 's' : '' }} free)</span>
+                    </div>
+
                     <div class="btn-div upload-btn sm" (click)="openUploadDialog()">
                         <span class="material-icons">edit</span>
                         <span>Change Images</span>
@@ -135,48 +143,41 @@
                 </div>
             </div>
 
+            <!-- A4 Page — single unified page showing all slots in the grid -->
             <div class="a4-pages-wrap">
-
-                <!-- Front Page -->
                 <div class="a4-page-group">
                     <div class="a4-page-heading">
                         <span class="material-icons">credit_card</span>
-                        <span class="a4-page-heading-text">Front Page</span>
-                        <span class="a4-page-heading-sub">— Front Side</span>
+                        <span class="a4-page-heading-text">A4 Layout Preview</span>
+                        <span class="a4-page-heading-sub">— {{ selectedCopies }} slots · {{ confirmedDesigns.length }}
+                            unique design{{ confirmedDesigns.length !== 1 ? 's' : '' }}</span>
                     </div>
+
+                    <!-- FIX: fixed A4 dimensions, grid fills top, height never collapses -->
                     <div class="a4-page">
                         <div class="a4-grid" [class]="'grid-' + selectedCopies">
-                            <div class="cnic-slot" *ngFor="let i of getCopiesArray()">
-                                <img *ngIf="frontImageConfirmed" [src]="frontImageCropped || frontImageSrc"
-                                    alt="Front CNIC" class="cnic-img" />
-                                <div *ngIf="!frontImageConfirmed" class="cnic-placeholder">
+                            <div class="cnic-slot" *ngFor="let slot of getLayoutSlots()">
+                                <img *ngIf="slot.imageSrc" [src]="slot.imageSrc" [alt]="slot.label" class="cnic-img" />
+                                <div *ngIf="!slot.imageSrc" class="cnic-placeholder">
                                     <span class="material-icons">image_not_supported</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Back Page -->
-                <div class="a4-page-group">
-                    <div class="a4-page-heading">
-                        <span class="material-icons">flip_to_back</span>
-                        <span class="a4-page-heading-text">Back Page</span>
-                        <span class="a4-page-heading-sub">— Back Side</span>
-                    </div>
-                    <div class="a4-page">
-                        <div class="a4-grid" [class]="'grid-' + selectedCopies">
-                            <div class="cnic-slot" *ngFor="let i of getCopiesArray()">
-                                <img *ngIf="backImageConfirmed" [src]="backImageCropped || backImageSrc" alt="Back CNIC"
-                                    class="cnic-img" />
-                                <div *ngIf="!backImageConfirmed" class="cnic-placeholder">
-                                    <span class="material-icons">image_not_supported</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Design slots legend -->
+            <div class="design-legend" *ngIf="confirmedDesigns.length > 1">
+                <span class="legend-label">
+                    <span class="material-icons">info</span>
+                    Designs cycle across slots:
+                </span>
+                <div class="legend-chips">
+                    <span class="legend-chip" *ngFor="let d of confirmedDesigns; let i = index">
+                        Slot {{ i + 1 }}, {{ i + 1 + confirmedDesigns.length }}, … → {{ d.label }}
+                    </span>
                 </div>
-
             </div>
         </div>
     </div>
@@ -197,52 +198,51 @@
         <div class="dialog-body">
             <p class="dialog-hint">
                 <span class="material-icons">info</span>
-                Upload both sides of the CNIC for a complete print layout.
+                Upload the front and back of each CNIC. Add more unique designs to fill remaining slots on the A4 page.
             </p>
 
-            <div class="upload-cards">
-                <!-- Front Upload -->
-                <div class="upload-card" [class.uploaded]="frontImageSrc" (click)="triggerFrontUpload()"
-                    (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'front')">
-                    <input type="file" #frontInput accept="image/*" (change)="onFileSelect($event, 'front')"
-                        style="display:none">
-                    <div class="upload-card-inner">
-                        <div class="upload-icon-wrap" [class.has-image]="frontImageSrc">
-                            <span class="material-icons">{{ frontImageSrc ? 'check_circle' : 'add_photo_alternate'
-                                }}</span>
-                        </div>
-                        <div class="upload-card-text">
-                            <span class="upload-label">Front Side</span>
-                            <span class="upload-sub">{{ frontImageSrc ? 'Image uploaded ✓' : 'Click or drag to upload'
-                                }}</span>
+            <!-- Design slots grid -->
+            <div class="upload-slots-grid">
+                <div *ngFor="let slot of cnicDesigns; let i = index" class="upload-slot-group">
+                    <div class="slot-group-label">
+                        <span class="material-icons">{{ i % 2 === 0 ? 'credit_card' : 'flip_to_back' }}</span>
+                        <span>{{ slot.label }}</span>
+                        <div class="icon-btn slot-remove-btn" *ngIf="cnicDesigns.length > 2"
+                            (click)="removeDesignSlot(slot.id)" title="Remove this slot">
+                            <span class="material-icons">close</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Back Upload -->
-                <div class="upload-card" [class.uploaded]="backImageSrc" (click)="triggerBackUpload()"
-                    (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'back')">
-                    <input type="file" #backInput accept="image/*" (change)="onFileSelect($event, 'back')"
-                        style="display:none">
-                    <div class="upload-card-inner">
-                        <div class="upload-icon-wrap" [class.has-image]="backImageSrc">
-                            <span class="material-icons">{{ backImageSrc ? 'check_circle' : 'add_photo_alternate'
-                                }}</span>
-                        </div>
-                        <div class="upload-card-text">
-                            <span class="upload-label">Back Side</span>
-                            <span class="upload-sub">{{ backImageSrc ? 'Image uploaded ✓' : 'Click or drag to upload'
-                                }}</span>
+                    <div class="upload-card" [class.uploaded]="slot.imageSrc" (click)="triggerSlotUpload(slot.id)"
+                        (dragover)="$event.preventDefault()" (drop)="onDrop($event, slot.id)">
+                        <div class="upload-card-inner">
+                            <div class="upload-icon-wrap" [class.has-image]="slot.imageSrc">
+                                <span class="material-icons">{{ slot.imageSrc ? 'check_circle' : 'add_photo_alternate'
+                                    }}</span>
+                            </div>
+                            <div class="upload-card-text">
+                                <span class="upload-label">{{ slot.label }}</span>
+                                <span class="upload-sub">{{ slot.imageSrc ? 'Image uploaded ✓' : 'Click or drag to
+                                    upload' }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Add Design Slot button -->
+            <div class="add-slot-row" *ngIf="cnicDesigns.length < 8">
+                <div class="btn-div add-slot-btn" (click)="addDesignSlot()">
+                    <span class="material-icons">add_circle_outline</span>
+                    <span>Add Another CNIC Design</span>
+                </div>
+                <span class="add-slot-hint">Add a different CNIC image to fill remaining page slots</span>
+            </div>
+
             <!-- Copies Selection -->
-            <div class="copies-section" *ngIf="frontImageSrc || backImageSrc">
+            <div class="copies-section" *ngIf="hasAnyUploaded">
                 <div class="copies-label">
                     <span class="material-icons">content_copy</span>
-                    <span>Copies per A4 page (max 8)</span>
+                    <span>Total slots per A4 page (max 8)</span>
                 </div>
                 <div class="copies-grid">
                     <div *ngFor="let c of copyOptions" class="copy-chip" [class.selected]="selectedCopies === c.value"
@@ -250,9 +250,13 @@
                         <span class="material-icons chip-icon">{{ c.available ? (selectedCopies === c.value ?
                             'check_circle' : 'radio_button_unchecked') : 'block' }}</span>
                         <span class="chip-num">{{ c.value }}</span>
-                        <span class="chip-label">{{ c.value === 1 ? 'copy' : 'copies' }}</span>
+                        <span class="chip-label">{{ c.value === 1 ? 'slot' : 'slots' }}</span>
                     </div>
                 </div>
+                <p class="copies-hint" *ngIf="uploadedCount > 0">
+                    <span class="material-icons">auto_awesome</span>
+                    {{ uploadedCount }} design(s) will cycle to fill all {{ selectedCopies }} slots
+                </p>
             </div>
         </div>
 
@@ -261,8 +265,7 @@
                 <span class="material-icons">close</span>
                 <span>Cancel</span>
             </div>
-            <div class="btn-div confirm-btn" (click)="confirmUpload()"
-                [class.disabled]="!frontImageSrc && !backImageSrc">
+            <div class="btn-div confirm-btn" (click)="confirmUpload()" [class.disabled]="!hasAnyUploaded">
                 <span class="material-icons">arrow_forward</span>
                 <span>Next: Preview & Crop</span>
             </div>
@@ -283,56 +286,35 @@
         </div>
 
         <div class="dialog-body">
-            <!-- Tabs -->
+            <!-- Tabs — one per design slot -->
             <div class="tab-bar">
-                <div class="tab" [class.active]="activePreviewTab === 'front'" (click)="switchTab('front')">
-                    <span class="material-icons">credit_card</span>
-                    <span>Front Side</span>
-                    <div class="tab-indicator" *ngIf="activePreviewTab === 'front'"></div>
-                </div>
-                <div class="tab" [class.active]="activePreviewTab === 'back'" (click)="switchTab('back')">
-                    <span class="material-icons">flip_to_back</span>
-                    <span>Back Side</span>
-                    <div class="tab-indicator" *ngIf="activePreviewTab === 'back'"></div>
+                <div *ngFor="let slot of cnicDesigns; let i = index" class="tab" [class.active]="activePreviewTab === i"
+                    (click)="switchTab(i)">
+                    <span class="material-icons">{{ i % 2 === 0 ? 'credit_card' : 'flip_to_back' }}</span>
+                    <span>{{ slot.label }}</span>
+                    <div class="tab-indicator" *ngIf="activePreviewTab === i"></div>
                 </div>
             </div>
 
             <!-- Image Preview Area -->
-            <div class="image-preview-area" *ngIf="activePreviewTab === 'front'">
-                <div class="preview-img-wrap" *ngIf="frontImageSrc; else noFrontImg">
+            <div class="image-preview-area" *ngIf="activeSlot">
+                <div class="preview-img-wrap" *ngIf="activeSlot.imageSrc; else noImg">
                     <div class="crop-overlay" [class.cropping]="isCropping" (mousedown)="startCrop($event)"
                         (mousemove)="moveCrop($event)" (mouseup)="endCrop($event)">
-                        <img [src]="frontImageCropped || frontImageSrc" class="preview-main-img" #frontImg
-                            alt="Front" />
+                        <img [src]="activeSlot.imageCropped || activeSlot.imageSrc" class="preview-main-img"
+                            alt="Preview" />
                         <div class="crop-box" *ngIf="isCropping && cropBox" [ngStyle]="cropBox"></div>
                     </div>
                     <div class="img-info">
                         <span class="material-icons">photo_size_select_large</span>
-                        <span>{{ frontImageSrc ? 'Front CNIC image loaded' : '' }}</span>
-                        <span class="badge success" *ngIf="frontImageCropped">Cropped</span>
+                        <span>{{ activeSlot.label }} loaded</span>
+                        <span class="badge success" *ngIf="activeSlot.imageCropped">Cropped</span>
                     </div>
                 </div>
-                <ng-template #noFrontImg>
+                <ng-template #noImg>
                     <div class="no-image-hint">
                         <span class="material-icons">image_not_supported</span>
-                        <p>No front image uploaded yet</p>
-                    </div>
-                </ng-template>
-            </div>
-
-            <div class="image-preview-area" *ngIf="activePreviewTab === 'back'">
-                <div class="preview-img-wrap" *ngIf="backImageSrc; else noBackImg">
-                    <img [src]="backImageCropped || backImageSrc" class="preview-main-img" alt="Back" />
-                    <div class="img-info">
-                        <span class="material-icons">photo_size_select_large</span>
-                        <span>Back CNIC image loaded</span>
-                        <span class="badge success" *ngIf="backImageCropped">Cropped</span>
-                    </div>
-                </div>
-                <ng-template #noBackImg>
-                    <div class="no-image-hint">
-                        <span class="material-icons">image_not_supported</span>
-                        <p>No back image uploaded yet</p>
+                        <p>No image uploaded for {{ activeSlot.label }} yet</p>
                     </div>
                 </ng-template>
             </div>

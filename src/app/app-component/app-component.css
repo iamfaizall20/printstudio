@@ -69,7 +69,6 @@
     --shadow-accent: 0 0 24px rgba(37, 99, 235, 0.15);
 }
 
-/* Light theme tweaks */
 :host(.light-theme) .app-wrapper::before {
     background:
         radial-gradient(ellipse 60% 40% at 15% 10%, rgba(37, 99, 235, 0.05) 0%, transparent 60%),
@@ -88,7 +87,6 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* Light theme: A4 card gets a slightly warmer white with stronger shadow for contrast */
 :host(.light-theme) .a4-page {
     background: #fefefe;
     box-shadow:
@@ -117,7 +115,7 @@
     box-shadow: 0 6px 20px rgba(37, 99, 235, 0.42);
 }
 
-/* Theme toggle button */
+/* Theme toggle */
 .theme-toggle {
     display: flex;
     align-items: center;
@@ -167,7 +165,6 @@
     transform: rotate(90deg) scale(0.6);
 }
 
-/* Mobile menu theme row */
 .mobile-menu-item.theme-item {
     color: var(--accent);
     border-bottom: 1px solid var(--border);
@@ -500,6 +497,18 @@
     border-radius: 14px;
 }
 
+/* Add design button in preview header */
+.add-design-btn {
+    background: rgba(167, 139, 250, 0.1);
+    color: var(--accent-2);
+    border: 1px solid rgba(167, 139, 250, 0.35);
+}
+
+.add-design-btn:hover {
+    background: rgba(167, 139, 250, 0.18);
+    transform: translateY(-1px);
+}
+
 /* ─── Hero Page ──────────────────────────────────────────────────────────── */
 .hero-page {
     flex: 1;
@@ -633,13 +642,15 @@
 .preview-section {
     width: 100%;
     max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .preview-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 32px;
     flex-wrap: wrap;
     gap: 12px;
 }
@@ -666,6 +677,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 /* ─── Dropdown ───────────────────────────────────────────────────────────── */
@@ -780,14 +792,12 @@
     flex-wrap: wrap;
 }
 
-/* Page group = heading + white card */
 .a4-page-group {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-/* Heading above each A4 card */
 .a4-page-heading {
     display: flex;
     align-items: center;
@@ -813,7 +823,11 @@
     font-weight: 400;
 }
 
-/* White A4 card — looks like real paper */
+/*
+ * FIX 2: A4 page — fixed height, never collapses.
+ * A4 ratio: 210×297mm → width:height = 1:1.4142
+ * At width=380px → height=537px. We use padding-top trick for true ratio preservation.
+ */
 .a4-page {
     background: #ffffff;
     border-radius: 4px;
@@ -824,15 +838,12 @@
         0 20px 48px rgba(0, 0, 0, 0.18),
         inset 0 0 0 1px rgba(0, 0, 0, 0.06);
     transition: box-shadow 0.3s ease, transform 0.3s ease;
-    /* A4 aspect ratio: 210 x 297mm */
     width: 380px;
-    min-height: 537px;
-    display: flex;
-    flex-direction: column;
+    /* Fixed A4 height — never shrinks regardless of copy count */
+    height: 537px;
     position: relative;
 }
 
-/* Subtle paper texture edge */
 .a4-page::before {
     content: '';
     position: absolute;
@@ -853,12 +864,20 @@
     transform: translateY(-4px);
 }
 
+/*
+ * FIX 2: Grid aligns to the TOP of the A4 page.
+ * height:100% fills the card; align-content:start pins rows to the top.
+ * Slots do NOT stretch to fill remaining vertical space.
+ */
 .a4-grid {
-    flex: 1;
+    width: 100%;
+    height: 100%;
     display: grid;
     gap: 10px;
     padding: 16px;
     align-content: start;
+    /* slots stack from top, rest of page stays white */
+    box-sizing: border-box;
 }
 
 .a4-grid.grid-2 {
@@ -917,6 +936,48 @@
     font-size: 22px;
 }
 
+/* ─── Design Legend ──────────────────────────────────────────────────────── */
+.design-legend {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+}
+
+.legend-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.legend-label .material-icons {
+    font-size: 14px;
+    color: var(--accent);
+}
+
+.legend-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.legend-chip {
+    font-size: 11px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid var(--border-accent);
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+
 /* ─── Dialog Overlay ─────────────────────────────────────────────────────── */
 .dialog-overlay {
     position: fixed;
@@ -946,7 +1007,7 @@
 }
 
 .upload-dialog {
-    max-width: 580px;
+    max-width: 640px;
 }
 
 .preview-dialog {
@@ -990,6 +1051,7 @@
     cursor: pointer;
     color: var(--text-secondary);
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .icon-btn:hover {
@@ -1052,10 +1114,48 @@
     flex-shrink: 0;
 }
 
-.upload-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+/* ─── Upload Slots Grid ──────────────────────────────────────────────────── */
+.upload-slots-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.upload-slot-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.slot-group-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.slot-group-label .material-icons {
+    font-size: 14px;
+    color: var(--accent);
+}
+
+.slot-remove-btn {
+    margin-left: auto;
+    width: 26px;
+    height: 26px;
+    color: var(--danger);
+}
+
+.slot-remove-btn:hover {
+    background: var(--danger-light);
+}
+
+.slot-remove-btn .material-icons {
+    font-size: 16px;
 }
 
 .upload-card {
@@ -1065,7 +1165,7 @@
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
-    min-height: 130px;
+    min-height: 100px;
 }
 
 .upload-card:hover {
@@ -1084,10 +1184,8 @@
 .upload-card-inner {
     padding: 16px;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    height: 100%;
+    gap: 14px;
 }
 
 .upload-icon-wrap {
@@ -1100,6 +1198,7 @@
     justify-content: center;
     color: var(--text-secondary);
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .upload-icon-wrap.has-image {
@@ -1114,7 +1213,6 @@
 .upload-card-text {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 2px;
 }
 
@@ -1127,6 +1225,34 @@
 .upload-sub {
     font-size: 11px;
     color: var(--text-secondary);
+}
+
+/* ─── Add Slot Row ───────────────────────────────────────────────────────── */
+.add-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.add-slot-btn {
+    background: rgba(167, 139, 250, 0.1);
+    color: var(--accent-2);
+    border: 1px dashed rgba(167, 139, 250, 0.4);
+    border-radius: var(--radius-md);
+    padding: 10px 18px;
+    font-size: 13px;
+}
+
+.add-slot-btn:hover {
+    background: rgba(167, 139, 250, 0.18);
+    transform: translateY(-1px);
+}
+
+.add-slot-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
 }
 
 /* ─── Copies Section ─────────────────────────────────────────────────────── */
@@ -1214,11 +1340,27 @@
     letter-spacing: 0.5px;
 }
 
+.copies-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.copies-hint .material-icons {
+    font-size: 14px;
+    color: var(--accent-2);
+}
+
 /* ─── Preview Dialog Content ─────────────────────────────────────────────── */
 .tab-bar {
     display: flex;
     border-bottom: 1px solid var(--border);
     gap: 4px;
+    overflow-x: auto;
+    flex-shrink: 0;
 }
 
 .tab {
@@ -1226,13 +1368,15 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    padding: 10px 18px;
-    font-size: 14px;
+    padding: 10px 16px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     transition: color 0.2s ease, background 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .tab:hover {
@@ -1465,7 +1609,6 @@
         font-size: 18px;
     }
 
-    /* Hide desktop buttons, show hamburger */
     .desktop-btns {
         display: none;
     }
@@ -1474,17 +1617,12 @@
         display: flex;
     }
 
-    /* Mobile menu anchors from top of screen adjusted for 60px navbar */
     .mobile-menu {
         top: 60px;
     }
 
     .hero-page {
         padding: 24px 16px;
-    }
-
-    .upload-cards {
-        grid-template-columns: 1fr;
     }
 
     .copies-grid {
@@ -1498,8 +1636,10 @@
 
     .a4-page {
         width: 100%;
-        max-width: 400px;
-        min-height: 0;
+        max-width: 380px;
+        /* Maintain fixed A4 ratio on mobile too */
+        height: auto;
+        aspect-ratio: 210 / 297;
     }
 
     .flow-steps {
@@ -1528,5 +1668,9 @@
     .preview-controls {
         width: 100%;
         justify-content: space-between;
+    }
+
+    .add-slot-hint {
+        display: none;
     }
 }

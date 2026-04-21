@@ -1,9 +1,18 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, HostBinding, OnInit, ViewChild } from '@angular/core';
+import jsPDF from 'jspdf';
 
 interface CopyOption {
   value: number;
   available: boolean;
+}
+
+interface CnicSlot {
+  id: number;
+  imageSrc: string | null;
+  imageCropped: string | null;
+  confirmed: boolean;
+  label: string;
 }
 
 @Component({
@@ -15,57 +24,62 @@ interface CopyOption {
 export class AppComponent implements OnInit {
   @ViewChild('frontInput') frontInput!: ElementRef<HTMLInputElement>;
   @ViewChild('backInput') backInput!: ElementRef<HTMLInputElement>;
-  @ViewChild('frontImg') frontImgEl!: ElementRef<HTMLImageElement>;
 
-  // Theme
   @HostBinding('class.light-theme') isLightTheme = false;
 
-  // Image state
-  frontImageSrc: string | null = null;
-  backImageSrc: string | null = null;
-  frontImageCropped: string | null = null;
-  backImageCropped: string | null = null;
-  frontImageConfirmed = false;
-  backImageConfirmed = false;
+  cnicDesigns: CnicSlot[] = [
+    { id: 1, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Front' },
+    { id: 2, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Back' },
+  ];
 
-  // Dialog state
+  private uploadTargetSlotId: number = 1;
+
   showUploadDialog = false;
   showPreviewDialog = false;
-  activePreviewTab: 'front' | 'back' = 'front';
+  activePreviewTab = 0;
 
-  // Mobile menu
   mobileMenuOpen = false;
 
-  // Copies
   selectedCopies = 4;
-  copyOptions: CopyOption[] = [
-    { value: 2, available: true },
-    { value: 4, available: true },
-    { value: 6, available: true },
-    { value: 8, available: true },
-  ];
+  copyOptions: CopyOption[] = [];
   copiesDropdownOpen = false;
 
-  // Crop state
   isCropping = false;
   cropLoading = false;
   cropBox: { [key: string]: string } | null = null;
   private cropStart: { x: number; y: number } | null = null;
 
-  // Loader
   isLoading = false;
   loaderMessage = 'Processing...';
 
+  get confirmedDesigns(): CnicSlot[] {
+    return this.cnicDesigns.filter(s => s.confirmed);
+  }
+
+  get anyConfirmed(): boolean {
+    return this.cnicDesigns.some(s => s.confirmed);
+  }
+
+  get freeSlots(): number {
+    return this.selectedCopies - this.confirmedDesigns.length;
+  }
+
+  get hasAnyUploaded(): boolean {
+    return this.cnicDesigns.some(s => s.imageSrc !== null);
+  }
+
+  get uploadedCount(): number {
+    return this.cnicDesigns.filter(s => s.imageSrc !== null).length;
+  }
+
+  get canAddDesign(): boolean {
+    return this.freeSlots > 0 && this.cnicDesigns.length < 8;
+  }
+
   ngOnInit(): void {
-    // Restore saved theme
     const saved = localStorage.getItem('printstudio-theme');
     if (saved === 'light') this.isLightTheme = true;
-
-    document.addEventListener('click', (e) => {
-      if (this.copiesDropdownOpen) {
-        this.copiesDropdownOpen = false;
-      }
-    });
+    this.refreshCopyOptions();
   }
 
   toggleTheme(): void {
@@ -74,15 +88,9 @@ export class AppComponent implements OnInit {
     this.mobileMenuOpen = false;
   }
 
-  toggleMobileMenu(): void {
-    this.mobileMenuOpen = !this.mobileMenuOpen;
-  }
+  toggleMobileMenu(): void { this.mobileMenuOpen = !this.mobileMenuOpen; }
+  closeMobileMenu(): void { this.mobileMenuOpen = false; }
 
-  closeMobileMenu(): void {
-    this.mobileMenuOpen = false;
-  }
-
-  // ─── Upload Dialog ────────────────────────────────────────────────────────
   openUploadDialog(): void {
     this.mobileMenuOpen = false;
     this.showUploadDialog = true;
@@ -91,58 +99,64 @@ export class AppComponent implements OnInit {
 
   closeUploadDialog(): void {
     this.showUploadDialog = false;
+    document.body.style.overflow = '';
   }
 
-  triggerFrontUpload(): void {
-    this.frontInput?.nativeElement.click();
+  triggerSlotUpload(slotId: number): void {
+    this.uploadTargetSlotId = slotId;
+    const input = document.getElementById('dynamic-file-input') as HTMLInputElement;
+    if (input) { input.value = ''; input.click(); }
   }
 
-  triggerBackUpload(): void {
-    this.backInput?.nativeElement.click();
-  }
-
-  onFileSelect(event: Event, side: 'front' | 'back'): void {
+  onDynamicFileSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
-    const file = input.files[0];
-    this.readFile(file, side);
+    this.readFileIntoSlot(input.files[0], this.uploadTargetSlotId);
   }
 
-  onDrop(event: DragEvent, side: 'front' | 'back'): void {
+  onDrop(event: DragEvent, slotId: number): void {
     event.preventDefault();
     const file = event.dataTransfer?.files[0];
-    if (file) this.readFile(file, side);
+    if (file) this.readFileIntoSlot(file, slotId);
   }
 
-  private readFile(file: File, side: 'front' | 'back'): void {
+  private readFileIntoSlot(file: File, slotId: number): void {
+    const slot = this.cnicDesigns.find(s => s.id === slotId);
+    if (!slot) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (side === 'front') {
-        this.frontImageSrc = result;
-        this.frontImageCropped = null;
-        this.frontImageConfirmed = false;
-      } else {
-        this.backImageSrc = result;
-        this.backImageCropped = null;
-        this.backImageConfirmed = false;
-      }
-      this.updateCopyAvailability();
+      slot.imageSrc = e.target?.result as string;
+      slot.imageCropped = null;
+      slot.confirmed = false;
+      this.refreshCopyOptions();
     };
     reader.readAsDataURL(file);
   }
 
+  addDesignSlot(): void {
+    if (!this.canAddDesign) return;
+    const newId = Date.now();
+    const designNum = Math.ceil((this.cnicDesigns.length + 1) / 2);
+    const side = this.cnicDesigns.length % 2 === 0 ? 'Front' : 'Back';
+    this.cnicDesigns.push({ id: newId, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${designNum} — ${side}` });
+  }
+
+  removeDesignSlot(slotId: number): void {
+    if (this.cnicDesigns.length <= 2) return;
+    this.cnicDesigns = this.cnicDesigns.filter(s => s.id !== slotId);
+    this.refreshCopyOptions();
+  }
+
   confirmUpload(): void {
-    if (!this.frontImageSrc && !this.backImageSrc) return;
+    if (!this.cnicDesigns.some(s => s.imageSrc)) return;
     this.closeUploadDialog();
     setTimeout(() => {
       this.showPreviewDialog = true;
-      this.activePreviewTab = this.frontImageSrc ? 'front' : 'back';
+      this.activePreviewTab = 0;
       document.body.style.overflow = 'hidden';
     }, 150);
   }
 
-  // ─── Preview Dialog ───────────────────────────────────────────────────────
   closePreviewDialog(): void {
     this.showPreviewDialog = false;
     this.isCropping = false;
@@ -150,51 +164,37 @@ export class AppComponent implements OnInit {
     document.body.style.overflow = '';
   }
 
-  switchTab(tab: 'front' | 'back'): void {
-    this.activePreviewTab = tab;
+  switchTab(index: number): void {
+    this.activePreviewTab = index;
     this.isCropping = false;
     this.cropBox = null;
   }
 
-  activeTabHasCrop(): boolean {
-    return this.activePreviewTab === 'front'
-      ? !!this.frontImageCropped
-      : !!this.backImageCropped;
+  get activeSlot(): CnicSlot | null {
+    return this.cnicDesigns[this.activePreviewTab] ?? null;
   }
+
+  activeTabHasCrop(): boolean { return !!this.activeSlot?.imageCropped; }
 
   autoCrop(): void {
+    const slot = this.activeSlot;
+    if (!slot?.imageSrc) return;
     this.cropLoading = true;
-    const src =
-      this.activePreviewTab === 'front' ? this.frontImageSrc : this.backImageSrc;
-    if (src) {
-      this.applyCropSimulated(src, this.activePreviewTab, () => {
-        this.cropLoading = false;
-      });
-    } else {
-      this.cropLoading = false;
-    }
+    this.applyCropSimulated(slot.imageSrc, slot, () => { this.cropLoading = false; });
   }
 
-  private applyCropSimulated(src: string, side: 'front' | 'back', done?: () => void): void {
+  private applyCropSimulated(src: string, slot: CnicSlot, done?: () => void): void {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
       const cropW = img.width * 0.9;
       const cropH = img.height * 0.85;
-      const cropX = img.width * 0.05;
-      const cropY = img.height * 0.075;
-      canvas.width = cropW;
-      canvas.height = cropH;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-      const cropped = canvas.toDataURL('image/jpeg', 0.92);
-      if (side === 'front') this.frontImageCropped = cropped;
-      else this.backImageCropped = cropped;
+      canvas.width = cropW; canvas.height = cropH;
+      canvas.getContext('2d')!.drawImage(img, img.width * 0.05, img.height * 0.075, cropW, cropH, 0, 0, cropW, cropH);
+      slot.imageCropped = canvas.toDataURL('image/jpeg', 0.92);
       if (done) done();
     };
-    img.onerror = () => {
-      if (done) done();
-    };
+    img.onerror = () => { if (done) done(); };
     img.src = src;
   }
 
@@ -212,34 +212,19 @@ export class AppComponent implements OnInit {
     if (!this.isCropping || !this.cropStart) return;
     const x = Math.min(this.cropStart.x, e.offsetX);
     const y = Math.min(this.cropStart.y, e.offsetY);
-    const w = Math.abs(e.offsetX - this.cropStart.x);
-    const h = Math.abs(e.offsetY - this.cropStart.y);
-    this.cropBox = {
-      left: x + 'px',
-      top: y + 'px',
-      width: w + 'px',
-      height: h + 'px',
-    };
+    this.cropBox = { left: x + 'px', top: y + 'px', width: Math.abs(e.offsetX - this.cropStart.x) + 'px', height: Math.abs(e.offsetY - this.cropStart.y) + 'px' };
   }
 
   endCrop(e: MouseEvent): void {
-    if (!this.isCropping || !this.cropStart) return;
-    // Apply the manual crop from cropBox
-    const src =
-      this.activePreviewTab === 'front' ? this.frontImageSrc : this.backImageSrc;
-    if (src && this.cropBox) {
-      this.applyManualCrop(src, this.activePreviewTab);
-    }
-    this.isCropping = false;
-    this.cropStart = null;
-    this.cropBox = null;
+    if (!this.isCropping || !this.cropStart || !this.activeSlot?.imageSrc) return;
+    if (this.cropBox) this.applyManualCrop(this.activeSlot.imageSrc, this.activeSlot);
+    this.isCropping = false; this.cropStart = null; this.cropBox = null;
   }
 
-  private applyManualCrop(src: string, side: 'front' | 'back'): void {
+  private applyManualCrop(src: string, slot: CnicSlot): void {
     if (!this.cropBox) return;
     const img = new Image();
     img.onload = () => {
-      // Get the rendered image element to compute scale
       const imgEl = document.querySelector('.preview-main-img') as HTMLImageElement;
       if (!imgEl) return;
       const scaleX = img.naturalWidth / imgEl.clientWidth;
@@ -248,81 +233,140 @@ export class AppComponent implements OnInit {
       const cropY = parseInt(this.cropBox!['top']) * scaleY;
       const cropW = parseInt(this.cropBox!['width']) * scaleX;
       const cropH = parseInt(this.cropBox!['height']) * scaleY;
-      if (cropW < 10 || cropH < 10) return; // too small, skip
+      if (cropW < 10 || cropH < 10) return;
       const canvas = document.createElement('canvas');
-      canvas.width = cropW;
-      canvas.height = cropH;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-      const cropped = canvas.toDataURL('image/jpeg', 0.92);
-      if (side === 'front') this.frontImageCropped = cropped;
-      else this.backImageCropped = cropped;
+      canvas.width = cropW; canvas.height = cropH;
+      canvas.getContext('2d')!.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      slot.imageCropped = canvas.toDataURL('image/jpeg', 0.92);
     };
     img.src = src;
   }
 
   resetCrop(): void {
-    if (this.activePreviewTab === 'front') this.frontImageCropped = null;
-    else this.backImageCropped = null;
+    if (this.activeSlot) this.activeSlot.imageCropped = null;
     this.cropBox = null;
   }
 
-  // FIX: confirmPreview no longer triggers the stuck loading state.
-  // It directly confirms images without closing dialog first to avoid timing bug.
   confirmPreview(): void {
-    // Immediately mark images as confirmed from what we have
-    if (this.frontImageSrc) this.frontImageConfirmed = true;
-    if (this.backImageSrc) this.backImageConfirmed = true;
-
-    // Close dialog and restore scroll
+    this.cnicDesigns.forEach(s => { if (s.imageSrc) s.confirmed = true; });
     this.showPreviewDialog = false;
     this.isCropping = false;
     this.cropBox = null;
     document.body.style.overflow = '';
-
-    // Brief visual feedback loader
     this.loaderMessage = 'Building your layout...';
     this.isLoading = true;
-    setTimeout(() => {
-      this.isLoading = false;
-    }, 700);
+    setTimeout(() => { this.isLoading = false; }, 700);
   }
 
-  // ─── Copies ──────────────────────────────────────────────────────────────
-  updateCopyAvailability(): void {
-    const hasImages = !!(this.frontImageSrc || this.backImageSrc);
-    this.copyOptions = [
-      { value: 2, available: hasImages },
-      { value: 4, available: hasImages },
-      { value: 6, available: hasImages },
-      { value: 8, available: hasImages },
-    ];
-    if (!this.copyOptions.find((c) => c.value === this.selectedCopies)?.available) {
+  refreshCopyOptions(): void {
+    const hasImages = this.cnicDesigns.some(s => s.imageSrc !== null);
+    this.copyOptions = [2, 4, 6, 8].map(v => ({ value: v, available: hasImages }));
+    if (!this.copyOptions.find(c => c.value === this.selectedCopies)?.available) {
       this.selectedCopies = 4;
     }
   }
 
-  selectCopies(val: number): void {
-    this.selectedCopies = val;
-    this.copiesDropdownOpen = false;
-  }
+  selectCopies(val: number): void { this.selectedCopies = val; this.copiesDropdownOpen = false; }
 
-  toggleCopiesDropdown(): void {
+  toggleCopiesDropdown(event: MouseEvent): void {
+    event.stopPropagation();
     this.copiesDropdownOpen = !this.copiesDropdownOpen;
   }
 
-  getCopiesArray(): number[] {
-    return Array.from({ length: this.selectedCopies }, (_, i) => i);
+  closeCopiesDropdown(): void { this.copiesDropdownOpen = false; }
+
+  getLayoutSlots(): Array<{ imageSrc: string | null; label: string }> {
+    const confirmed = this.confirmedDesigns;
+    return Array.from({ length: this.selectedCopies }, (_, i) => {
+      if (confirmed.length === 0) return { imageSrc: null, label: '' };
+      const design = confirmed[i % confirmed.length];
+      return { imageSrc: design.imageCropped || design.imageSrc, label: design.label };
+    });
   }
 
-  downloadPDF(): void {
-    if (!this.frontImageConfirmed && !this.backImageConfirmed) return;
+  // ─── PDF Download ─────────────────────────────────────────────────────────
+  /**
+   * A4 in mm: 210 × 297  |  margin: 10mm  |  gap between cards: 5mm
+   * CNIC ISO/IEC 7810 ID-1: 85.6 × 54 mm (ratio 1.585)
+   *
+   * Grid layout by selectedCopies:
+   *   2  → 1 col × 2 rows
+   *   4  → 2 col × 2 rows
+   *   6  → 2 col × 3 rows
+   *   8  → 2 col × 4 rows
+   *
+   * Pages:
+   *   - If both front AND back designs exist → 2 pages (front page, back page)
+   *   - Otherwise → 1 page with all confirmed designs cycling
+   */
+  async downloadPDF(): Promise<void> {
+    if (!this.anyConfirmed) return;
     this.mobileMenuOpen = false;
-    this.loaderMessage = 'Generating PDF...';
+    this.loaderMessage = 'Generating PDF…';
     this.isLoading = true;
-    setTimeout(() => {
+
+    try {
+      const cols = this.selectedCopies === 2 ? 1 : 2;
+      const rows = Math.ceil(this.selectedCopies / cols);
+
+      const pageW = 210, pageH = 297;
+      const margin = 10, gap = 5;
+      const printW = pageW - margin * 2;
+      const printH = pageH - margin * 2;
+
+      const cellW = (printW - gap * (cols - 1)) / cols;
+      const cellH = (printH - gap * (rows - 1)) / rows;
+
+      // Fit CNIC (ratio 1.585) inside cell, centred
+      const cnicRatio = 85.6 / 54;
+      let imgW = cellW;
+      let imgH = imgW / cnicRatio;
+      if (imgH > cellH) { imgH = cellH; imgW = imgH * cnicRatio; }
+      const offsetX = (cellW - imgW) / 2;
+      const offsetY = (cellH - imgH) / 2;
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      const drawGrid = (designs: CnicSlot[], pageLabel: string) => {
+        for (let i = 0; i < this.selectedCopies; i++) {
+          const design = designs[i % designs.length];
+          const src = design.imageCropped || design.imageSrc;
+          if (!src) continue;
+
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const x = margin + col * (cellW + gap) + offsetX;
+          const y = margin + row * (cellH + gap) + offsetY;
+          const fmt = src.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+          pdf.addImage(src, fmt, x, y, imgW, imgH);
+        }
+        // Light footer label
+        pdf.setFontSize(7);
+        pdf.setTextColor(180, 180, 180);
+        pdf.text(pageLabel, pageW / 2, pageH - 3, { align: 'center' });
+        pdf.setTextColor(0, 0, 0);
+      };
+
+      const frontDesigns = this.confirmedDesigns.filter((_, i) => i % 2 === 0);
+      const backDesigns = this.confirmedDesigns.filter((_, i) => i % 2 === 1);
+      const hasBoth = frontDesigns.length > 0 && backDesigns.length > 0;
+
+      if (hasBoth) {
+        drawGrid(frontDesigns, 'Front Side — PrintStudio');
+        pdf.addPage();
+        drawGrid(backDesigns, 'Back Side — PrintStudio');
+      } else {
+        drawGrid(this.confirmedDesigns, 'CNIC Layout — PrintStudio');
+      }
+
+      const date = new Date().toISOString().slice(0, 10);
+      pdf.save(`CNIC_Layout_${date}.pdf`);
+
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('PDF generation failed. Please try again.');
+    } finally {
       this.isLoading = false;
-      alert('PDF generation requires a PDF library (e.g., jsPDF). Integrate jsPDF to export your A4 layout.');
-    }, 1800);
+    }
   }
 }
