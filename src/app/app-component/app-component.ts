@@ -350,11 +350,19 @@ export class AppComponent implements OnInit {
     }
 
     return Array.from({ length: this.SLOTS_PER_PAGE }, (_, i) => {
-      if (sequence.length === 0) {
-        return { imageSrc: null, label: '', isEmpty: true, slotIndex: i };
+
+      // ✅ EMPTY SLOT CONDITION
+      if (i >= sequence.length) {
+        return {
+          imageSrc: null,
+          label: '',
+          isEmpty: true,
+          slotIndex: i,
+        };
       }
-      // Wrap sequence to fill all 8 slots
-      const design = sequence[i % sequence.length];
+
+      const design = sequence[i];
+
       return {
         imageSrc: design.imageCropped || design.imageSrc,
         label: design.label,
@@ -427,7 +435,9 @@ export class AppComponent implements OnInit {
         if (sequence.length === 0) return;
 
         for (let i = 0; i < this.SLOTS_PER_PAGE; i++) {
-          const design = sequence[i % sequence.length];
+          if (i >= sequence.length) continue;
+
+          const design = sequence[i];
           const src = design.imageCropped || design.imageSrc;
           if (!src) continue;
 
@@ -467,6 +477,47 @@ export class AppComponent implements OnInit {
       alert('PDF generation failed. Please try again.');
     } finally {
       this.isLoading = false;
+      this.resetApp();
     }
+  }
+  resetApp(): void {
+
+    // Reset all CNIC slots
+    this.cnicDesigns = [
+      {
+        id: 1,
+        imageSrc: null,
+        imageCropped: null,
+        confirmed: false,
+        label: 'CNIC 1 — Front',
+        side: 'front',
+        copies: 4
+      },
+      {
+        id: 2,
+        imageSrc: null,
+        imageCropped: null,
+        confirmed: false,
+        label: 'CNIC 1 — Back',
+        side: 'back',
+        copies: 4
+      }
+    ];
+
+    // Reset UI states
+    this.showPreviewDialog = false;
+    this.showUploadDialog = false;
+    this.activePreviewTab = 0;
+
+    this.isCropping = false;
+    this.cropBox = null;
+
+    this.mobileMenuOpen = false;
+
+    // Reset counters
+    this.refreshCopyOptions();
+
+    // Restore scroll
+    document.body.style.overflow = '';
   }
 }

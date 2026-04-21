@@ -129,7 +129,8 @@
                     </div>
                     <div class="a4-page">
                         <div class="a4-grid grid-8">
-                            <div class="cnic-slot" *ngFor="let slot of getFrontPageSlots(); let i = index">
+                            <div class="cnic-slot" *ngFor="let slot of getFrontPageSlots(); let i = index"
+                                [class.empty-slot]="slot.isEmpty">
                                 <img *ngIf="slot.imageSrc" [src]="slot.imageSrc" [alt]="slot.label" class="cnic-img" />
                                 <div *ngIf="!slot.imageSrc" class="cnic-placeholder" (click)="openUploadDialog()"
                                     title="Click to add image">
@@ -160,7 +161,8 @@
                     </div>
                     <div class="a4-page">
                         <div class="a4-grid grid-8">
-                            <div class="cnic-slot" *ngFor="let slot of getBackPageSlots(); let i = index">
+                            <div class="cnic-slot" *ngFor="let slot of getBackPageSlots(); let i = index"
+                                [class.empty-slot]="slot.isEmpty">
                                 <img *ngIf="slot.imageSrc" [src]="slot.imageSrc" [alt]="slot.label" class="cnic-img" />
                                 <div *ngIf="!slot.imageSrc" class="cnic-placeholder" (click)="openUploadDialog()"
                                     title="Click to add image">
@@ -275,7 +277,7 @@
                         Over 8 — layout will wrap
                     </span>
                     <span class="slot-usage-note ok" *ngIf="!slotsOverLimit && totalClaimedSlots < 8">
-                        Remaining {{ 8 - totalClaimedSlots }} slot(s) will tile from start
+                        Remaining {{ 8 - totalClaimedSlots }} slot(s) will remain empty
                     </span>
                 </div>
                 <div class="slot-usage-track">
@@ -306,7 +308,7 @@
             </div>
             <div class="btn-div confirm-btn" (click)="confirmUpload()" [class.disabled]="!hasAnyUploaded">
                 <span class="material-icons">arrow_forward</span>
-                <span>Next: Preview &amp; Crop</span>
+                <span>Preview &amp; Crop</span>
             </div>
         </div>
     </div>
@@ -383,7 +385,7 @@
             </div>
             <div class="btn-div confirm-btn" (click)="confirmPreview()">
                 <span class="material-icons">check_circle</span>
-                <span>Confirm &amp; Preview Layout</span>
+                <span>Confirm &amp; Preview</span>
             </div>
         </div>
     </div>

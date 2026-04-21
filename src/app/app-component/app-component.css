@@ -376,7 +376,8 @@
 
 .mobile-menu-item.download {
     color: #fff;
-    background: rgba(79, 142, 247, 0.15);
+    /* background: rgba(79, 142, 247, 0.15); */
+    background: var(--accent);
 }
 
 .mobile-menu-item.download:hover:not(.disabled) {
@@ -486,7 +487,7 @@
 }
 
 .btn-div.disabled {
-    opacity: 0.35;
+    opacity: 0.80;
     cursor: not-allowed;
     pointer-events: none;
 }
@@ -958,11 +959,11 @@
 }
 
 .upload-dialog {
-    max-width: 640px;
+    max-width: 550px;
 }
 
 .preview-dialog {
-    max-width: 640px;
+    max-width: 580px;
 }
 
 .dialog-header {
@@ -1316,6 +1317,25 @@
     color: var(--text-muted);
 }
 
+.cnic-slot.empty-slot {
+    border: 2px dashed #ff9800;
+    background: repeating-linear-gradient(45deg,
+            rgba(255, 152, 0, 0.08),
+            rgba(255, 152, 0, 0.08) 10px,
+            transparent 10px,
+            transparent 20px);
+    position: relative;
+}
+
+.cnic-slot.empty-slot::after {
+    content: "Empty Slot";
+    position: absolute;
+    font-size: 9px;
+    color: #ff9800;
+    bottom: 4px;
+    right: 6px;
+}
+
 .warn-icon {
     font-size: 13px !important;
     color: var(--danger) !important;
@@ -1624,6 +1644,25 @@
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 760px) {
+    .flow-steps {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-div.disabled {
+        opacity: 1;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .step-arrow {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+    }
+
     .a4-pages-wrap {
         flex-direction: column;
         align-items: center;
