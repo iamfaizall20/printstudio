@@ -11,6 +11,11 @@
     --accent-glow: rgba(79, 142, 247, 0.28);
     --accent-2: #a78bfa;
 
+    --front-color: #4f8ef7;
+    --front-light: rgba(79, 142, 247, 0.12);
+    --back-color: #a78bfa;
+    --back-light: rgba(167, 139, 250, 0.12);
+
     --success: #34d399;
     --success-light: rgba(52, 211, 153, 0.12);
     --danger: #f87171;
@@ -48,6 +53,11 @@
     --accent-light: rgba(37, 99, 235, 0.10);
     --accent-glow: rgba(37, 99, 235, 0.22);
     --accent-2: #7c3aed;
+
+    --front-color: #2563eb;
+    --front-light: rgba(37, 99, 235, 0.10);
+    --back-color: #7c3aed;
+    --back-light: rgba(124, 58, 237, 0.10);
 
     --success: #059669;
     --success-light: rgba(5, 150, 105, 0.10);
@@ -497,18 +507,6 @@
     border-radius: 14px;
 }
 
-/* Add design button in preview header */
-.add-design-btn {
-    background: rgba(167, 139, 250, 0.1);
-    color: var(--accent-2);
-    border: 1px solid rgba(167, 139, 250, 0.35);
-}
-
-.add-design-btn:hover {
-    background: rgba(167, 139, 250, 0.18);
-    transform: translateY(-1px);
-}
-
 /* ─── Hero Page ──────────────────────────────────────────────────────────── */
 .hero-page {
     flex: 1;
@@ -641,7 +639,7 @@
 /* ─── Preview Section ────────────────────────────────────────────────────── */
 .preview-section {
     width: 100%;
-    max-width: 1200px;
+    max-width: 1000px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -673,6 +671,18 @@
     color: var(--text-primary);
 }
 
+.preview-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--accent-light);
+    border: 1px solid var(--border-accent);
+    color: var(--accent);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
 .preview-controls {
     display: flex;
     align-items: center;
@@ -680,154 +690,97 @@
     flex-wrap: wrap;
 }
 
-/* ─── Dropdown ───────────────────────────────────────────────────────────── */
-.dropdown-wrap {
-    position: relative;
-}
-
-.dropdown-trigger {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 14px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--text-primary);
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.dropdown-trigger:hover {
-    border-color: var(--border-accent);
-    background: var(--bg-card-hover);
-}
-
-.dropdown-trigger .material-icons {
-    font-size: 18px;
-    color: var(--accent);
-}
-
-.chevron {
-    margin-left: 4px;
-    transition: transform 0.2s ease;
-}
-
-.dropdown-wrap.open .chevron {
-    transform: rotate(180deg);
-}
-
-.dropdown-menu {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    min-width: 160px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    z-index: 200;
-    overflow: hidden;
-    transform-origin: top left;
-    display: none;
-}
-
-.dropdown-wrap.open .dropdown-menu {
-    display: block;
-}
-
-.dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    font-size: 14px;
-    cursor: pointer;
-    color: var(--text-primary);
-    transition: background 0.15s ease;
-}
-
-.dropdown-item:hover:not(.disabled) {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.dropdown-item.selected {
-    color: var(--accent);
-    background: var(--accent-light);
-}
-
-.dropdown-item.disabled {
-    color: var(--text-muted);
-    cursor: not-allowed;
-}
-
-.dropdown-item .material-icons {
-    font-size: 16px;
-}
-
-.dropdown-item.selected .material-icons {
-    color: var(--accent);
-}
-
-.dropdown-item.disabled .material-icons {
-    color: var(--text-muted);
-}
-
-.copy-badge {
-    font-size: 10px;
-    background: var(--danger-light);
-    color: var(--danger);
-    border-radius: 4px;
-    padding: 2px 6px;
-    margin-left: auto;
-}
-
-/* ─── A4 Pages ───────────────────────────────────────────────────────────── */
+/* ─── A4 Pages — Two-Page Layout ─────────────────────────────────────────── */
 .a4-pages-wrap {
     display: flex;
-    gap: 40px;
+    gap: 0;
     justify-content: center;
+    align-items: flex-start;
     flex-wrap: wrap;
 }
 
 .a4-page-group {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+    flex: 1;
+    min-width: 300px;
+    max-width: 420px;
 }
 
 .a4-page-heading {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
 }
 
-.a4-page-heading .material-icons {
-    font-size: 18px;
-    color: var(--accent);
+.a4-page-heading .page-icon {
+    font-size: 16px;
+}
+
+.a4-page-heading .front-icon {
+    color: var(--front-color);
+}
+
+.a4-page-heading .back-icon {
+    color: var(--back-color);
 }
 
 .a4-page-heading-text {
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.2px;
 }
 
 .a4-page-heading-sub {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-muted);
     font-weight: 400;
 }
 
-/*
- * FIX 2: A4 page — fixed height, never collapses.
- * A4 ratio: 210×297mm → width:height = 1:1.4142
- * At width=380px → height=537px. We use padding-top trick for true ratio preservation.
- */
+/* Pages Divider (between front and back pages) */
+.pages-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 16px;
+    margin-top: 36px;
+    flex-shrink: 0;
+}
+
+.divider-line {
+    width: 1px;
+    height: 60px;
+    background: var(--border-hover);
+}
+
+.divider-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.divider-label .material-icons {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* A4 Page — Fixed 8 slots always */
 .a4-page {
     background: #ffffff;
     border-radius: 4px;
@@ -838,8 +791,8 @@
         0 20px 48px rgba(0, 0, 0, 0.18),
         inset 0 0 0 1px rgba(0, 0, 0, 0.06);
     transition: box-shadow 0.3s ease, transform 0.3s ease;
-    width: 380px;
-    /* Fixed A4 height — never shrinks regardless of copy count */
+    width: 100%;
+    /* Fixed A4 height — 8 slots, never shrinks */
     height: 537px;
     position: relative;
 }
@@ -864,48 +817,33 @@
     transform: translateY(-4px);
 }
 
-/*
- * FIX 2: Grid aligns to the TOP of the A4 page.
- * height:100% fills the card; align-content:start pins rows to the top.
- * Slots do NOT stretch to fill remaining vertical space.
- */
+/* Fixed 8-slot grid: 2 cols × 4 rows */
 .a4-grid {
     width: 100%;
     height: 100%;
     display: grid;
-    gap: 10px;
-    padding: 16px;
-    align-content: start;
-    /* slots stack from top, rest of page stays white */
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 6px;
+    padding: 10px;
     box-sizing: border-box;
-}
-
-.a4-grid.grid-2 {
-    grid-template-columns: 1fr;
-}
-
-.a4-grid.grid-4 {
-    grid-template-columns: 1fr 1fr;
-}
-
-.a4-grid.grid-6 {
-    grid-template-columns: 1fr 1fr;
 }
 
 .a4-grid.grid-8 {
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(4, 1fr);
 }
 
 .cnic-slot {
     background: #f8f8f8;
     border: 1px dashed #d0d0d0;
-    border-radius: 4px;
+    border-radius: 3px;
     overflow: hidden;
-    aspect-ratio: 1.585 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: border-color 0.2s ease;
+    position: relative;
 }
 
 .cnic-slot:hover {
@@ -924,58 +862,73 @@
     transform: scale(1.02);
 }
 
+/* Plus placeholder in empty slots */
 .cnic-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    color: #bbb;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    color: #c0c0c0;
 }
 
-.cnic-placeholder .material-icons {
-    font-size: 22px;
+.cnic-placeholder:hover {
+    background: rgba(79, 142, 247, 0.06);
+    color: #4f8ef7;
 }
 
-/* ─── Design Legend ──────────────────────────────────────────────────────── */
-.design-legend {
+.cnic-placeholder:hover .plus-icon {
+    color: #4f8ef7;
+    transform: scale(1.2);
+}
+
+.plus-icon {
+    font-size: 18px;
+    color: #c0c0c0;
+    transition: all 0.2s ease;
+}
+
+.placeholder-label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: inherit;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.cnic-placeholder:hover .placeholder-label {
+    opacity: 1;
+}
+
+/* ─── PDF Info Bar ───────────────────────────────────────────────────────── */
+.pdf-info-bar {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 16px;
+    align-items: center;
+    gap: 20px;
+    padding: 12px 18px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     flex-wrap: wrap;
 }
 
-.legend-label {
+.pdf-info-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     font-size: 12px;
     color: var(--text-secondary);
-    white-space: nowrap;
-    flex-shrink: 0;
 }
 
-.legend-label .material-icons {
-    font-size: 14px;
+.pdf-info-item .material-icons {
+    font-size: 15px;
     color: var(--accent);
-}
-
-.legend-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.legend-chip {
-    font-size: 11px;
-    background: var(--accent-light);
-    color: var(--accent);
-    border: 1px solid var(--border-accent);
-    border-radius: 4px;
-    padding: 2px 8px;
 }
 
 /* ─── Dialog Overlay ─────────────────────────────────────────────────────── */
@@ -1121,7 +1074,6 @@
     gap: 20px;
 }
 
-/* One CNIC = one row: header + two cards side by side */
 .cnic-pair-row {
     display: flex;
     flex-direction: column;
@@ -1619,6 +1571,37 @@
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+    .a4-pages-wrap {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .a4-page-group {
+        width: 100%;
+        max-width: 380px;
+    }
+
+    .pages-divider {
+        flex-direction: row;
+        margin: 0;
+        padding: 12px 0;
+        width: 100%;
+        max-width: 380px;
+    }
+
+    .divider-line {
+        width: auto;
+        flex: 1;
+        height: 1px;
+    }
+
+    .divider-label {
+        flex-direction: row;
+        gap: 6px;
+    }
+}
+
 @media (max-width: 640px) {
     .navbar {
         padding: 0 16px;
@@ -1653,15 +1636,7 @@
         grid-template-columns: 1fr 1fr;
     }
 
-    .a4-pages-wrap {
-        flex-direction: column;
-        align-items: center;
-    }
-
     .a4-page {
-        width: 100%;
-        max-width: 380px;
-        /* Maintain fixed A4 ratio on mobile too */
         height: auto;
         aspect-ratio: 210 / 297;
     }
@@ -1696,5 +1671,9 @@
 
     .add-slot-hint {
         display: none;
+    }
+
+    .pdf-info-bar {
+        gap: 12px;
     }
 }
