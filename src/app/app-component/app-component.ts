@@ -13,6 +13,7 @@ interface CnicSlot {
   imageCropped: string | null;
   confirmed: boolean;
   label: string;
+  side: 'front' | 'back';
 }
 
 @Component({
@@ -28,8 +29,8 @@ export class AppComponent implements OnInit {
   @HostBinding('class.light-theme') isLightTheme = false;
 
   cnicDesigns: CnicSlot[] = [
-    { id: 1, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Front' },
-    { id: 2, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Back' },
+    { id: 1, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Front', side: 'front' },
+    { id: 2, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Back', side: 'back' },
   ];
 
   private uploadTargetSlotId: number = 1;
@@ -133,13 +134,43 @@ export class AppComponent implements OnInit {
     reader.readAsDataURL(file);
   }
 
-  addDesignSlot(): void {
-    if (!this.canAddDesign) return;
-    const newId = Date.now();
-    const designNum = Math.ceil((this.cnicDesigns.length + 1) / 2);
-    const side = this.cnicDesigns.length % 2 === 0 ? 'Front' : 'Back';
-    this.cnicDesigns.push({ id: newId, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${designNum} — ${side}` });
+  /** Returns slots grouped into pairs: [[front1, back1], [front2, back2], ...] */
+  getCnicPairs(): CnicSlot[][] {
+    const pairs: CnicSlot[][] = [];
+    for (let i = 0; i < this.cnicDesigns.length; i += 2) {
+      const pair: CnicSlot[] = [this.cnicDesigns[i]];
+      if (this.cnicDesigns[i + 1]) pair.push(this.cnicDesigns[i + 1]);
+      pairs.push(pair);
+    }
+    return pairs;
   }
+
+  /** Add a full front+back pair at once */
+  addPair(): void {
+    if (this.cnicDesigns.length >= 8) return;
+    const pairNum = this.getCnicPairs().length + 1;
+    const baseId = Date.now();
+    this.cnicDesigns.push(
+      { id: baseId, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${pairNum} — Front`, side: 'front' },
+      { id: baseId + 1, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${pairNum} — Back`, side: 'back' }
+    );
+    this.refreshCopyOptions();
+  }
+
+  /** Remove an entire pair (front+back) by pair index */
+  removePair(pairIndex: number): void {
+    if (this.getCnicPairs().length <= 1) return;
+    const startIndex = pairIndex * 2;
+    this.cnicDesigns.splice(startIndex, 2);
+    // Re-label remaining pairs
+    for (let i = 0; i < this.cnicDesigns.length; i++) {
+      const pairNum = Math.floor(i / 2) + 1;
+      this.cnicDesigns[i].label = `CNIC ${pairNum} — ${this.cnicDesigns[i].side === 'front' ? 'Front' : 'Back'}`;
+    }
+    this.refreshCopyOptions();
+  }
+
+  addDesignSlot(): void { this.addPair(); }
 
   removeDesignSlot(slotId: number): void {
     if (this.cnicDesigns.length <= 2) return;

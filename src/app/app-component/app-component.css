@@ -1114,33 +1114,51 @@
     flex-shrink: 0;
 }
 
-/* ─── Upload Slots Grid ──────────────────────────────────────────────────── */
+/* ─── Upload Slots Grid (pair-based layout) ──────────────────────────────── */
 .upload-slots-grid {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
 }
 
-.upload-slot-group {
+/* One CNIC = one row: header + two cards side by side */
+.cnic-pair-row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    padding: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.2s ease;
 }
 
-.slot-group-label {
+.cnic-pair-row:hover {
+    border-color: var(--border-hover);
+}
+
+.pair-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+    color: var(--accent);
 }
 
-.slot-group-label .material-icons {
-    font-size: 14px;
-    color: var(--accent);
+.pair-header .material-icons {
+    font-size: 16px;
+}
+
+.pair-title {
+    flex: 1;
+    letter-spacing: 0.2px;
+}
+
+.pair-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 }
 
 .slot-remove-btn {
@@ -1182,10 +1200,12 @@
 }
 
 .upload-card-inner {
-    padding: 16px;
+    padding: 14px 12px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
+    text-align: center;
 }
 
 .upload-icon-wrap {
@@ -1627,6 +1647,10 @@
 
     .copies-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pair-cards {
+        grid-template-columns: 1fr 1fr;
     }
 
     .a4-pages-wrap {

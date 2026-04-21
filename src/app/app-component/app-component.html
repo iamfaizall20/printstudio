@@ -201,41 +201,52 @@
                 Upload the front and back of each CNIC. Add more unique designs to fill remaining slots on the A4 page.
             </p>
 
-            <!-- Design slots grid -->
+            <!-- Design slots — one row per CNIC pair (front + back side by side) -->
             <div class="upload-slots-grid">
-                <div *ngFor="let slot of cnicDesigns; let i = index" class="upload-slot-group">
-                    <div class="slot-group-label">
-                        <span class="material-icons">{{ i % 2 === 0 ? 'credit_card' : 'flip_to_back' }}</span>
-                        <span>{{ slot.label }}</span>
-                        <div class="icon-btn slot-remove-btn" *ngIf="cnicDesigns.length > 2"
-                            (click)="removeDesignSlot(slot.id)" title="Remove this slot">
-                            <span class="material-icons">close</span>
+                <div *ngFor="let pair of getCnicPairs(); let pi = index" class="cnic-pair-row">
+
+                    <!-- Row header: CNIC N label + remove button -->
+                    <div class="pair-header">
+                        <span class="material-icons">credit_card</span>
+                        <span class="pair-title">CNIC {{ pi + 1 }}</span>
+                        <div class="icon-btn slot-remove-btn" *ngIf="getCnicPairs().length > 1" (click)="removePair(pi)"
+                            title="Remove CNIC {{ pi + 1 }}">
+                            <span class="material-icons">delete_outline</span>
                         </div>
                     </div>
-                    <div class="upload-card" [class.uploaded]="slot.imageSrc" (click)="triggerSlotUpload(slot.id)"
-                        (dragover)="$event.preventDefault()" (drop)="onDrop($event, slot.id)">
-                        <div class="upload-card-inner">
-                            <div class="upload-icon-wrap" [class.has-image]="slot.imageSrc">
-                                <span class="material-icons">{{ slot.imageSrc ? 'check_circle' : 'add_photo_alternate'
-                                    }}</span>
+
+                    <!-- Front + Back cards side by side -->
+                    <div class="pair-cards">
+                        <ng-container *ngFor="let slot of pair">
+                            <div class="upload-card" [class.uploaded]="slot.imageSrc"
+                                (click)="triggerSlotUpload(slot.id)" (dragover)="$event.preventDefault()"
+                                (drop)="onDrop($event, slot.id)">
+                                <div class="upload-card-inner">
+                                    <div class="upload-icon-wrap" [class.has-image]="slot.imageSrc">
+                                        <span class="material-icons">{{ slot.imageSrc ? 'check_circle' : (slot.side ===
+                                            'front' ? 'credit_card' : 'flip_to_back') }}</span>
+                                    </div>
+                                    <div class="upload-card-text">
+                                        <span class="upload-label">{{ slot.side === 'front' ? 'Front Side' : 'Back Side'
+                                            }}</span>
+                                        <span class="upload-sub">{{ slot.imageSrc ? 'Uploaded ✓' : 'Click or drag'
+                                            }}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="upload-card-text">
-                                <span class="upload-label">{{ slot.label }}</span>
-                                <span class="upload-sub">{{ slot.imageSrc ? 'Image uploaded ✓' : 'Click or drag to
-                                    upload' }}</span>
-                            </div>
-                        </div>
+                        </ng-container>
                     </div>
+
                 </div>
             </div>
 
-            <!-- Add Design Slot button -->
-            <div class="add-slot-row" *ngIf="cnicDesigns.length < 8">
-                <div class="btn-div add-slot-btn" (click)="addDesignSlot()">
+            <!-- Add Another CNIC row -->
+            <div class="add-slot-row" *ngIf="getCnicPairs().length < 4">
+                <div class="btn-div add-slot-btn" (click)="addPair()">
                     <span class="material-icons">add_circle_outline</span>
-                    <span>Add Another CNIC Design</span>
+                    <span>Add Another CNIC</span>
                 </div>
-                <span class="add-slot-hint">Add a different CNIC image to fill remaining page slots</span>
+                <span class="add-slot-hint">Adds a new front + back pair to fill remaining slots</span>
             </div>
 
             <!-- Copies Selection -->
