@@ -14,6 +14,7 @@ interface CnicSlot {
   confirmed: boolean;
   label: string;
   side: 'front' | 'back';
+  copies: number; // per-CNIC copy count
 }
 
 @Component({
@@ -31,9 +32,12 @@ export class AppComponent implements OnInit {
   // Fixed 8 slots per page
   readonly SLOTS_PER_PAGE = 8;
 
+  // Available copy counts per CNIC
+  readonly COPY_OPTIONS = [2, 4, 6, 8];
+
   cnicDesigns: CnicSlot[] = [
-    { id: 1, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Front', side: 'front' },
-    { id: 2, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Back', side: 'back' },
+    { id: 1, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Front', side: 'front', copies: 4 },
+    { id: 2, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Back', side: 'back', copies: 4 },
   ];
 
   private uploadTargetSlotId: number = 1;
@@ -44,8 +48,7 @@ export class AppComponent implements OnInit {
 
   mobileMenuOpen = false;
 
-  // Copies per CNIC (how many times each unique design repeats)
-  selectedCopiesPerCnic = 4; // 4 copies × 2 pages (front+back) = 8 slots total
+  // Legacy — kept for refreshCopyOptions compat, not used for tiling anymore
   copyOptions: CopyOption[] = [];
   copiesDropdownOpen = false;
 
@@ -79,11 +82,6 @@ export class AppComponent implements OnInit {
 
   get uploadedCount(): number {
     return this.cnicDesigns.filter(s => s.imageSrc !== null).length;
-  }
-
-  /** How many copies of each CNIC pair fit per page (always 4 for 2 CNICs, or variable) */
-  get copiesPerPage(): number {
-    return this.selectedCopiesPerCnic;
   }
 
   ngOnInit(): void {
@@ -160,8 +158,8 @@ export class AppComponent implements OnInit {
     const pairNum = this.getCnicPairs().length + 1;
     const baseId = Date.now();
     this.cnicDesigns.push(
-      { id: baseId, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${pairNum} — Front`, side: 'front' },
-      { id: baseId + 1, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${pairNum} — Back`, side: 'back' }
+      { id: baseId, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${pairNum} — Front`, side: 'front', copies: 4 },
+      { id: baseId + 1, imageSrc: null, imageCropped: null, confirmed: false, label: `CNIC ${pairNum} — Back`, side: 'back', copies: 4 }
     );
     this.refreshCopyOptions();
   }
@@ -176,6 +174,35 @@ export class AppComponent implements OnInit {
       this.cnicDesigns[i].label = `CNIC ${pairNum} — ${this.cnicDesigns[i].side === 'front' ? 'Front' : 'Back'}`;
     }
     this.refreshCopyOptions();
+  }
+
+  /**
+   * Set copies for ALL slots in a pair (front + back share the same count).
+   * When one side's copies changes, sync the paired opposite side too.
+   */
+  setPairCopies(pairIndex: number, copies: number): void {
+    const startIndex = pairIndex * 2;
+    if (this.cnicDesigns[startIndex]) this.cnicDesigns[startIndex].copies = copies;
+    if (this.cnicDesigns[startIndex + 1]) this.cnicDesigns[startIndex + 1].copies = copies;
+  }
+
+  /** Get copies for a pair (reads from front slot of pair) */
+  getPairCopies(pairIndex: number): number {
+    return this.cnicDesigns[pairIndex * 2]?.copies ?? 4;
+  }
+
+  /**
+   * Returns how many total slots are claimed by uploaded pairs.
+   * Used to warn when total > 8.
+   */
+  get totalClaimedSlots(): number {
+    return this.getCnicPairs()
+      .filter(pair => pair.some(s => s.imageSrc))
+      .reduce((sum, _, pi) => sum + this.getPairCopies(pi), 0);
+  }
+
+  get slotsOverLimit(): boolean {
+    return this.totalClaimedSlots > this.SLOTS_PER_PAGE;
   }
 
   confirmUpload(): void {
@@ -291,15 +318,10 @@ export class AppComponent implements OnInit {
 
   refreshCopyOptions(): void {
     const hasImages = this.cnicDesigns.some(s => s.imageSrc !== null);
-    // Options: how many copies of each CNIC to show (1–4, since 4×2=8 max slots per page)
-    this.copyOptions = [1, 2, 3, 4].map(v => ({ value: v, available: hasImages }));
-    if (!this.copyOptions.find(c => c.value === this.selectedCopiesPerCnic)?.available) {
-      this.selectedCopiesPerCnic = 4;
-    }
+    this.copyOptions = [2, 4, 6, 8].map(v => ({ value: v, available: hasImages }));
   }
 
   selectCopies(val: number): void {
-    this.selectedCopiesPerCnic = val;
     this.copiesDropdownOpen = false;
   }
 
@@ -311,20 +333,28 @@ export class AppComponent implements OnInit {
   closeCopiesDropdown(): void { this.copiesDropdownOpen = false; }
 
   /**
-   * Build a tiled slots array for a given set of designs.
-   * Each design gets exactly `selectedCopiesPerCnic` consecutive slots.
-   * The sequence repeats (wraps) to fill all SLOTS_PER_PAGE slots.
+   * Build tiled slots for a page from an ordered list of designs with their copy counts.
+   * Each design occupies exactly `design.copies` consecutive slots.
+   * If total copies < 8, remaining slots wrap back from the first design.
+   * If total copies > 8, slots are capped at SLOTS_PER_PAGE.
    */
   private buildPageSlots(
     designs: CnicSlot[]
   ): Array<{ imageSrc: string | null; label: string; isEmpty: boolean; slotIndex: number }> {
+    // Build the full ordered sequence: [CNIC1 × copies, CNIC2 × copies, ...]
+    const sequence: CnicSlot[] = [];
+    for (const design of designs) {
+      for (let c = 0; c < design.copies; c++) {
+        sequence.push(design);
+      }
+    }
+
     return Array.from({ length: this.SLOTS_PER_PAGE }, (_, i) => {
-      if (designs.length === 0) {
+      if (sequence.length === 0) {
         return { imageSrc: null, label: '', isEmpty: true, slotIndex: i };
       }
-      // Which design group does slot i fall into?
-      const designIndex = Math.floor(i / this.selectedCopiesPerCnic) % designs.length;
-      const design = designs[designIndex];
+      // Wrap sequence to fill all 8 slots
+      const design = sequence[i % sequence.length];
       return {
         imageSrc: design.imageCropped || design.imageSrc,
         label: design.label,
@@ -334,24 +364,10 @@ export class AppComponent implements OnInit {
     });
   }
 
-  /**
-   * Front page: always SLOTS_PER_PAGE (8) slots.
-   * Each confirmed front design fills `selectedCopiesPerCnic` consecutive slots,
-   * then the next design fills the next block, wrapping as needed.
-   *
-   * Example — 2 CNICs, 4 copies each:
-   *   Slots 0-3 → CNIC 1 Front  |  Slots 4-7 → CNIC 2 Front
-   *
-   * Example — 2 CNICs, 2 copies each:
-   *   Slots 0-1 → CNIC 1  |  Slots 2-3 → CNIC 2  |  Slots 4-5 → CNIC 1  |  Slots 6-7 → CNIC 2
-   */
   getFrontPageSlots(): Array<{ imageSrc: string | null; label: string; isEmpty: boolean; slotIndex: number }> {
     return this.buildPageSlots(this.confirmedFronts);
   }
 
-  /**
-   * Back page: same tiling logic applied to confirmed back designs.
-   */
   getBackPageSlots(): Array<{ imageSrc: string | null; label: string; isEmpty: boolean; slotIndex: number }> {
     return this.buildPageSlots(this.confirmedBacks);
   }
@@ -361,25 +377,15 @@ export class AppComponent implements OnInit {
     return this.confirmedFronts.length > 0 && this.confirmedBacks.length > 0;
   }
 
-  /** Check if only front side is confirmed */
   get hasFrontOnly(): boolean {
     return this.confirmedFronts.length > 0 && this.confirmedBacks.length === 0;
   }
 
-  /** Check if only back side is confirmed */
   get hasBackOnly(): boolean {
     return this.confirmedBacks.length > 0 && this.confirmedFronts.length === 0;
   }
 
   // ─── PDF Download ─────────────────────────────────────────────────────────
-  /**
-   * A4: 210×297mm | margin: 10mm | gap: 5mm
-   * Fixed 8 slots per page in 2 cols × 4 rows
-   * Page 1: Front sides | Page 2: Back sides (if both exist)
-   *
-   * Tiling matches the preview: each design fills `selectedCopiesPerCnic`
-   * consecutive slots before the next design begins.
-   */
   async downloadPDF(): Promise<void> {
     if (!this.anyConfirmed) return;
     this.mobileMenuOpen = false;
@@ -388,7 +394,7 @@ export class AppComponent implements OnInit {
 
     try {
       const cols = 2;
-      const rows = 4; // 2×4 = 8 slots per page
+      const rows = 4;
       const pageW = 210, pageH = 297;
       const margin = 10, gap = 5;
       const printW = pageW - margin * 2;
@@ -397,7 +403,6 @@ export class AppComponent implements OnInit {
       const cellW = (printW - gap * (cols - 1)) / cols;
       const cellH = (printH - gap * (rows - 1)) / rows;
 
-      // Fit CNIC (ratio 1.585) inside cell, centred
       const cnicRatio = 85.6 / 54;
       let imgW = cellW;
       let imgH = imgW / cnicRatio;
@@ -408,17 +413,21 @@ export class AppComponent implements OnInit {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
       /**
-       * Draw one A4 page using the same tiling logic as buildPageSlots().
-       * Each design fills `selectedCopiesPerCnic` consecutive slots,
-       * wrapping across all SLOTS_PER_PAGE slots.
+       * Draw one A4 page using the same sequence logic as buildPageSlots().
+       * Builds [CNIC1×copies, CNIC2×copies, ...] then wraps to fill 8 slots.
        */
       const drawPage = (designs: CnicSlot[], pageLabel: string) => {
-        for (let i = 0; i < this.SLOTS_PER_PAGE; i++) {
-          if (designs.length === 0) continue;
+        // Build sequence identical to buildPageSlots
+        const sequence: CnicSlot[] = [];
+        for (const design of designs) {
+          for (let c = 0; c < design.copies; c++) {
+            sequence.push(design);
+          }
+        }
+        if (sequence.length === 0) return;
 
-          // Mirror the preview tiling: block of copies per design, then next design
-          const designIndex = Math.floor(i / this.selectedCopiesPerCnic) % designs.length;
-          const design = designs[designIndex];
+        for (let i = 0; i < this.SLOTS_PER_PAGE; i++) {
+          const design = sequence[i % sequence.length];
           const src = design.imageCropped || design.imageSrc;
           if (!src) continue;
 
@@ -446,7 +455,6 @@ export class AppComponent implements OnInit {
         if (fronts.length > 0) pdf.addPage();
         drawPage(backs, 'Back Side — PrintStudio');
       }
-      // If no separate sides, draw all confirmed
       if (fronts.length === 0 && backs.length === 0) {
         drawPage(this.confirmedDesigns, 'CNIC Layout — PrintStudio');
       }

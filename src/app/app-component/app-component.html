@@ -208,8 +208,8 @@
         <div class="dialog-body">
             <p class="dialog-hint">
                 <span class="material-icons">info</span>
-                Upload the front and back of each CNIC. Each page always prints 8 copies — your images tile to fill all
-                slots.
+                Upload front &amp; back of each CNIC, then choose how many copies of each to print per page (max 8 total
+                slots).
             </p>
 
             <!-- Design slots — one row per CNIC pair (front + back side by side) -->
@@ -248,6 +248,43 @@
                         </ng-container>
                     </div>
 
+                    <!-- ── Per-CNIC copy selector ── -->
+                    <div class="pair-copies-row" *ngIf="pair[0].imageSrc || pair[1]?.imageSrc">
+                        <div class="pair-copies-label">
+                            <span class="material-icons">content_copy</span>
+                            <span>Copies on each page</span>
+                        </div>
+                        <div class="pair-copies-chips">
+                            <div *ngFor="let c of COPY_OPTIONS" class="copy-chip"
+                                [class.selected]="getPairCopies(pi) === c" (click)="setPairCopies(pi, c)">
+                                <span class="chip-num">{{ c }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Slot usage bar -->
+            <div class="slot-usage-bar" *ngIf="hasAnyUploaded">
+                <div class="slot-usage-label">
+                    <span class="material-icons">grid_view</span>
+                    <span>Slots used: <strong [class.over]="slotsOverLimit">{{ totalClaimedSlots }}</strong> / 8</span>
+                    <span class="slot-usage-note" *ngIf="slotsOverLimit">
+                        <span class="material-icons warn-icon">warning</span>
+                        Over 8 — layout will wrap
+                    </span>
+                    <span class="slot-usage-note ok" *ngIf="!slotsOverLimit && totalClaimedSlots < 8">
+                        Remaining {{ 8 - totalClaimedSlots }} slot(s) will tile from start
+                    </span>
+                </div>
+                <div class="slot-usage-track">
+                    <div *ngFor="let pair of getCnicPairs(); let pi = index" class="slot-usage-segment"
+                        [style.flex]="getPairCopies(pi)" [class.seg-over]="slotsOverLimit"
+                        [title]="'CNIC ' + (pi+1) + ': ' + getPairCopies(pi) + ' copies'">
+                    </div>
+                    <div class="slot-usage-empty" *ngIf="totalClaimedSlots < 8" [style.flex]="8 - totalClaimedSlots">
+                    </div>
                 </div>
             </div>
 
@@ -260,27 +297,6 @@
                 <span class="add-slot-hint">Adds a new front + back pair (tiles across 8 slots)</span>
             </div>
 
-            <!-- Copies Per CNIC -->
-            <div class="copies-section" *ngIf="hasAnyUploaded">
-                <div class="copies-label">
-                    <span class="material-icons">content_copy</span>
-                    <span>Copies per CNIC on each page</span>
-                </div>
-                <div class="copies-grid">
-                    <div *ngFor="let c of copyOptions" class="copy-chip"
-                        [class.selected]="selectedCopiesPerCnic === c.value" [class.disabled]="!c.available"
-                        (click)="c.available && selectCopies(c.value)">
-                        <span class="material-icons chip-icon">{{ c.available ? (selectedCopiesPerCnic === c.value ?
-                            'check_circle' : 'radio_button_unchecked') : 'block' }}</span>
-                        <span class="chip-num">{{ c.value }}</span>
-                        <span class="chip-label">{{ c.value === 1 ? 'copy' : 'copies' }}</span>
-                    </div>
-                </div>
-                <p class="copies-hint" *ngIf="uploadedCount > 0">
-                    <span class="material-icons">auto_awesome</span>
-                    Each page will have 8 slots — designs tile to fill remaining spaces
-                </p>
-            </div>
         </div>
 
         <div class="dialog-footer">
@@ -290,7 +306,7 @@
             </div>
             <div class="btn-div confirm-btn" (click)="confirmUpload()" [class.disabled]="!hasAnyUploaded">
                 <span class="material-icons">arrow_forward</span>
-                <span>Next: Preview & Crop</span>
+                <span>Next: Preview &amp; Crop</span>
             </div>
         </div>
     </div>
@@ -301,7 +317,7 @@
         <div class="dialog-header">
             <div class="dialog-title">
                 <span class="material-icons">crop</span>
-                <h3>Preview & Crop</h3>
+                <h3>Preview &amp; Crop</h3>
             </div>
             <div class="icon-btn" (click)="closePreviewDialog()">
                 <span class="material-icons">close</span>
@@ -367,7 +383,7 @@
             </div>
             <div class="btn-div confirm-btn" (click)="confirmPreview()">
                 <span class="material-icons">check_circle</span>
-                <span>Confirm & Preview Layout</span>
+                <span>Confirm &amp; Preview Layout</span>
             </div>
         </div>
     </div>
