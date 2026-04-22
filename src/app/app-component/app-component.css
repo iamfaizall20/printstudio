@@ -1798,6 +1798,12 @@
 .footer strong {
     color: var(--text-secondary);
     font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.footer strong:hover {
+    color: var(--text-primary);
 }
 
 .footer-icon {

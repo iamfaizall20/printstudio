@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, HostBinding, OnInit, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import jsPDF from 'jspdf';
+declare const cv: any;
 
 interface CopyOption {
   value: number;
@@ -24,6 +26,7 @@ interface CnicSlot {
   styleUrl: './app-component.css',
 })
 export class AppComponent implements OnInit {
+
   @ViewChild('frontInput') frontInput!: ElementRef<HTMLInputElement>;
   @ViewChild('backInput') backInput!: ElementRef<HTMLInputElement>;
 
@@ -260,10 +263,141 @@ export class AppComponent implements OnInit {
   autoCrop(): void {
     const slot = this.activeSlot;
     if (!slot?.imageSrc) return;
+
     this.cropLoading = true;
-    this.applyCropSimulated(slot.imageSrc, slot, () => { this.cropLoading = false; });
+
+    const img = new Image();
+    img.src = slot.imageSrc;
+
+    img.onload = () => {
+      // @ts-ignore
+      const cvCheck = setInterval(() => {
+        // @ts-ignore
+        if (window.cv && cv.Mat) {
+          clearInterval(cvCheck);
+          this.runOpenCVAutoCrop(img, slot);
+        }
+      }, 100);
+    };
+  }
+  private runOpenCVAutoCrop(img: HTMLImageElement, slot: CnicSlot): void {
+
+    // @ts-ignore
+    let src = cv.imread(img);
+
+    // @ts-ignore
+    let gray = new cv.Mat();
+    // @ts-ignore
+    let blur = new cv.Mat();
+    // @ts-ignore
+    let edges = new cv.Mat();
+    // @ts-ignore
+    let contours = new cv.MatVector();
+    // @ts-ignore
+    let hierarchy = new cv.Mat();
+
+    // Convert to grayscale
+    // @ts-ignore
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+    // Blur to remove noise
+    // @ts-ignore
+    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+
+    // Edge detection
+    // @ts-ignore
+    cv.Canny(blur, edges, 75, 200);
+
+    // Find contours
+    // @ts-ignore
+    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    let maxArea = 0;
+    let bestContour = null;
+
+    for (let i = 0; i < contours.size(); i++) {
+      let cnt = contours.get(i);
+      let area = cv.contourArea(cnt);
+
+      if (area > maxArea) {
+
+        let approx = new cv.Mat();
+        // @ts-ignore
+        cv.approxPolyDP(cnt, approx, 0.02 * cv.arcLength(cnt, true), true);
+
+        // We want rectangle (CNIC shape)
+        if (approx.rows === 4) {
+          bestContour = approx;
+          maxArea = area;
+        }
+      }
+    }
+
+    // If nothing detected → fallback
+    if (!bestContour) {
+      this.fallbackCenterCrop(img, slot);
+      this.cropLoading = false;
+      return;
+    }
+
+    // For now (safe version) → enhanced crop
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    ctx.drawImage(img, 0, 0);
+
+    // Simple improvement (you can upgrade to warpPerspective later)
+    const croppedCanvas = document.createElement('canvas');
+    const w = img.width * 0.85;
+    const h = img.height * 0.85;
+
+    croppedCanvas.width = w;
+    croppedCanvas.height = h;
+
+    const cctx = croppedCanvas.getContext('2d')!;
+    cctx.drawImage(canvas,
+      img.width * 0.07,
+      img.height * 0.07,
+      w,
+      h,
+      0, 0, w, h
+    );
+
+    slot.imageCropped = croppedCanvas.toDataURL('image/jpeg', 0.95);
+
+    // cleanup
+    src.delete(); gray.delete(); blur.delete();
+    edges.delete(); contours.delete(); hierarchy.delete();
+
+    this.cropLoading = false;
   }
 
+  private fallbackCenterCrop(img: HTMLImageElement, slot: CnicSlot): void {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+
+    const cropW = img.width * 0.9;
+    const cropH = img.height * 0.85;
+
+    canvas.width = cropW;
+    canvas.height = cropH;
+
+    ctx.drawImage(
+      img,
+      img.width * 0.05,
+      img.height * 0.075,
+      cropW,
+      cropH,
+      0, 0,
+      cropW,
+      cropH
+    );
+
+    slot.imageCropped = canvas.toDataURL('image/jpeg', 0.92);
+  }
   private applyCropSimulated(src: string, slot: CnicSlot, done?: () => void): void {
     const img = new Image();
     img.onload = () => {
@@ -605,5 +739,8 @@ export class AppComponent implements OnInit {
 
     this.refreshCopyOptions();
     document.body.style.overflow = '';
+  }
+  goToGithub() {
+    window.open('https://github.com/iamfaizall20', '_blank');
   }
 }
