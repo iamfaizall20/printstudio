@@ -1,59 +1,162 @@
-# Printstudio
+# PrintStudio — Smart CNIC Layout Generator
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.3.
+PrintStudio is a modern web application built with Angular that enables users to generate clean, print-ready CNIC layouts on A4 pages. Users can upload front and back images, crop them precisely, control copy distribution, and export a structured PDF in a few steps.
 
-## Development server
+---
 
-To start a local development server, run:
+## Overview
+
+This project solves a common real-world problem: arranging CNIC copies efficiently for printing. Instead of manually resizing and aligning images in tools like Word or Photoshop, PrintStudio automates the entire workflow with accuracy and speed.
+
+---
+
+## Features
+
+### Image Upload
+
+* Upload front and back sides of CNIC cards
+* Drag and drop support
+* Multiple CNIC pairs (up to 4 pairs / 8 slots)
+
+### Cropping System
+
+* Auto-crop for quick adjustments
+* Manual crop with:
+
+  * Drag-to-select interface
+  * Grid overlay for alignment
+  * Live preview feedback
+
+### Layout Engine
+
+* Automatically arranges images into a 2 × 4 grid
+* Supports:
+
+  * Front-only layouts
+  * Back-only layouts
+  * Dual-page layouts (front and back)
+
+### Copy Management
+
+* Select number of copies per CNIC (2, 4, 6, 8)
+* Dynamic slot allocation system
+* Real-time slot usage tracking
+
+### PDF Export
+
+* Generates high-quality A4 PDF files
+* Maintains correct CNIC aspect ratio
+* Separate pages for front and back sides
+* Built using jsPDF
+
+### User Interface
+
+* Clean and responsive design
+* Light and dark theme support
+* Mobile-friendly layout
+* Smooth dialog-based workflow
+
+---
+
+## Tech Stack
+
+* Frontend: Angular
+* Language: TypeScript
+* Styling: CSS
+* PDF Generation: jsPDF
+* Image Processing: HTML5 Canvas API
+
+---
+
+## Project Structure
+
+```plaintext
+src/
+│
+├── app/
+│   ├── app-component.ts       # Application logic
+│   ├── app-component.html     # UI structure
+│   ├── app-component.css      # Styling
+│
+└── assets/
+```
+
+---
+
+## Application Flow
+
+1. Upload CNIC images (front and back)
+2. Preview and crop images
+3. Select number of copies per CNIC
+4. Generate A4 layout automatically
+5. Download the final PDF
+
+---
+
+## Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/your-username/printstudio.git
+
+# Navigate into the project
+cd printstudio
+
+# Install dependencies
+npm install
+
+# Run the application
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open the application in your browser:
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```
+http://localhost:4200
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+---
 
-```bash
-ng generate --help
-```
+## Use Cases
 
-## Building
+* Photocopy and printing shops
+* Office documentation workflows
+* Personal document organization
+* Bulk CNIC print preparation
 
-To build the project run:
+---
 
-```bash
-ng build
-```
+## Future Improvements
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+* AI-based smart cropping
+* Drag-and-drop slot reordering
+* Template saving functionality
+* Cloud storage integration
+* Support for additional card formats
 
-## Running unit tests
+---
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## Author
 
-```bash
-ng test
-```
+Faizal Hassan
+Frontend Developer
 
-## Running end-to-end tests
+---
 
-For end-to-end (e2e) testing, run:
+## License
 
-```bash
-ng e2e
-```
+This project is licensed under the MIT License.
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+---
 
-## Additional Resources
+## Contribution
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Contributions are welcome. You can:
+
+* Fork the repository
+* Create a new branch
+* Submit a pull request
+
+---
+
+PrintStudio focuses on simplicity, precision, and efficiency in document layout generation.
