@@ -48,10 +48,15 @@ export class AppComponent implements OnInit {
   copyOptions: CopyOption[] = [];
   copiesDropdownOpen = false;
 
+  // ── Crop state ──────────────────────────────────────────────────────────────
   isCropping = false;
   cropLoading = false;
+  // cropBox is only non-null once the user has dragged far enough
   cropBox: { [key: string]: string } | null = null;
+  // raw pixel start point relative to the overlay element
   private cropStart: { x: number; y: number } | null = null;
+  // whether the mouse button is currently held down during a drag
+  private isDragging = false;
 
   isLoading = false;
   loaderMessage = 'Processing...';
@@ -235,6 +240,8 @@ export class AppComponent implements OnInit {
     this.showPreviewDialog = false;
     this.isCropping = false;
     this.cropBox = null;
+    this.isDragging = false;
+    this.cropStart = null;
     document.body.style.overflow = '';
   }
 
@@ -242,6 +249,8 @@ export class AppComponent implements OnInit {
     this.activePreviewTab = index;
     this.isCropping = false;
     this.cropBox = null;
+    this.isDragging = false;
+    this.cropStart = null;
   }
 
   activeTabHasCrop(): boolean { return !!this.activeSlot?.imageCropped; }
@@ -278,37 +287,60 @@ export class AppComponent implements OnInit {
 
   // ─── Manual crop ───────────────────────────────────────────────────────────
 
+  /**
+   * Toggles manual crop mode. Clicking "Manual Crop" only activates the
+   * crosshair cursor — no box appears until the user actually drags.
+   */
   toggleManualCrop(): void {
     this.isCropping = !this.isCropping;
-    if (!this.isCropping) this.cropBox = null;
+    // Always clear the previous box when toggling
+    this.cropBox = null;
+    this.isDragging = false;
+    this.cropStart = null;
   }
 
+  /**
+   * Called on mousedown — records where the drag started.
+   * Does NOT create a crop box yet; that happens in moveCrop.
+   */
   startCrop(e: MouseEvent): void {
     if (!this.isCropping) return;
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
+    e.preventDefault();
+
+    const overlay = e.currentTarget as HTMLElement;
+    const rect = overlay.getBoundingClientRect();
+
     this.cropStart = {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     };
-    // Reset the crop box on new drag start
+    this.isDragging = true;
+    // Reset any existing box so the user starts fresh
     this.cropBox = null;
   }
 
+  /**
+   * Called on mousemove — draws the selection box only while dragging.
+   */
   moveCrop(e: MouseEvent): void {
-    if (!this.isCropping || !this.cropStart) return;
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+    // Only act when the mouse button is held down after a startCrop
+    if (!this.isCropping || !this.isDragging || !this.cropStart) return;
+    e.preventDefault();
+
+    const overlay = e.currentTarget as HTMLElement;
+    const rect = overlay.getBoundingClientRect();
+
+    // Current pointer position relative to the overlay
+    const currentX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const currentY = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
 
     const x = Math.min(this.cropStart.x, currentX);
     const y = Math.min(this.cropStart.y, currentY);
     const w = Math.abs(currentX - this.cropStart.x);
     const h = Math.abs(currentY - this.cropStart.y);
 
-    // Only show box once the user has dragged a meaningful distance
-    if (w > 5 || h > 5) {
+    // Only render the box once the drag is meaningful (> 8px in any direction)
+    if (w > 8 || h > 8) {
       this.cropBox = {
         left: x + 'px',
         top: y + 'px',
@@ -318,11 +350,15 @@ export class AppComponent implements OnInit {
     }
   }
 
+  /**
+   * Called on mouseup — applies the crop and exits crop mode.
+   */
   endCrop(e: MouseEvent): void {
-    if (!this.isCropping || !this.cropStart || !this.activeSlot?.imageSrc) return;
+    if (!this.isCropping || !this.isDragging) return;
+    this.isDragging = false;
 
-    if (this.cropBox) {
-      this.applyManualCrop(this.activeSlot.imageSrc, this.activeSlot);
+    if (this.cropBox && this.activeSlot?.imageSrc) {
+      this.applyManualCrop(this.activeSlot.imageSrc, this.activeSlot, e.currentTarget as HTMLElement);
     }
 
     this.isCropping = false;
@@ -330,34 +366,66 @@ export class AppComponent implements OnInit {
     this.cropBox = null;
   }
 
-  private applyManualCrop(src: string, slot: CnicSlot): void {
+  /**
+   * Applies the crop box selection to the actual image using canvas.
+   * Uses the overlay element's bounding rect to correctly map screen
+   * pixels back to natural image coordinates.
+   *
+   * @param src        - original image data URL
+   * @param slot       - the CnicSlot to update
+   * @param overlayEl  - the .crop-overlay div (used for accurate coordinate mapping)
+   */
+  private applyManualCrop(src: string, slot: CnicSlot, overlayEl: HTMLElement): void {
     if (!this.cropBox) return;
 
-    const imgEl = document.querySelector('.preview-main-img') as HTMLImageElement;
+    // Find the <img> inside the overlay so we know its rendered dimensions
+    const imgEl = overlayEl.querySelector('.preview-main-img') as HTMLImageElement | null;
     if (!imgEl) return;
+
+    const imgRect = imgEl.getBoundingClientRect();
+    const overlayRect = overlayEl.getBoundingClientRect();
+
+    // Offset of the <img> relative to the overlay (handles object-fit: contain padding)
+    const imgOffsetX = imgRect.left - overlayRect.left;
+    const imgOffsetY = imgRect.top - overlayRect.top;
+
+    // The rendered size of the image element
+    const renderedW = imgRect.width;
+    const renderedH = imgRect.height;
+
+    // Crop box coordinates are relative to the overlay; translate to image-relative coords
+    const boxLeft = parseFloat(this.cropBox['left']) - imgOffsetX;
+    const boxTop = parseFloat(this.cropBox['top']) - imgOffsetY;
+    const boxW = parseFloat(this.cropBox['width']);
+    const boxH = parseFloat(this.cropBox['height']);
+
+    // Clamp to image bounds
+    const clampedLeft = Math.max(0, boxLeft);
+    const clampedTop = Math.max(0, boxTop);
+    const clampedW = Math.min(boxW, renderedW - clampedLeft);
+    const clampedH = Math.min(boxH, renderedH - clampedTop);
+
+    if (clampedW < 10 || clampedH < 10) return;
 
     const img = new Image();
     img.onload = () => {
-      const rect = imgEl.getBoundingClientRect();
-      const scaleX = img.naturalWidth / rect.width;
-      const scaleY = img.naturalHeight / rect.height;
+      // Scale factors from rendered size → natural image size
+      const scaleX = img.naturalWidth / renderedW;
+      const scaleY = img.naturalHeight / renderedH;
 
-      const cropX = parseFloat(this.cropBox!['left']) * scaleX;
-      const cropY = parseFloat(this.cropBox!['top']) * scaleY;
-      const cropW = parseFloat(this.cropBox!['width']) * scaleX;
-      const cropH = parseFloat(this.cropBox!['height']) * scaleY;
-
-      if (cropW < 10 || cropH < 10) return;
+      const naturalX = clampedLeft * scaleX;
+      const naturalY = clampedTop * scaleY;
+      const naturalW = clampedW * scaleX;
+      const naturalH = clampedH * scaleY;
 
       const canvas = document.createElement('canvas');
-      canvas.width = cropW;
-      canvas.height = cropH;
+      canvas.width = naturalW;
+      canvas.height = naturalH;
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
+      ctx.drawImage(img, naturalX, naturalY, naturalW, naturalH, 0, 0, naturalW, naturalH);
       slot.imageCropped = canvas.toDataURL('image/jpeg', 0.95);
       slot.confirmed = false;
     };
@@ -367,6 +435,8 @@ export class AppComponent implements OnInit {
   resetCrop(): void {
     if (this.activeSlot) this.activeSlot.imageCropped = null;
     this.cropBox = null;
+    this.isDragging = false;
+    this.cropStart = null;
   }
 
   // ─── Confirm preview ───────────────────────────────────────────────────────
@@ -376,6 +446,8 @@ export class AppComponent implements OnInit {
     this.showPreviewDialog = false;
     this.isCropping = false;
     this.cropBox = null;
+    this.isDragging = false;
+    this.cropStart = null;
     document.body.style.overflow = '';
     this.loaderMessage = 'Building your layout...';
     this.isLoading = true;
@@ -527,6 +599,8 @@ export class AppComponent implements OnInit {
     this.activePreviewTab = 0;
     this.isCropping = false;
     this.cropBox = null;
+    this.isDragging = false;
+    this.cropStart = null;
     this.mobileMenuOpen = false;
 
     this.refreshCopyOptions();
