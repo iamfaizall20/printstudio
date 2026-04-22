@@ -114,6 +114,10 @@
                         <span class="material-icons">edit</span>
                         <span>Change Images</span>
                     </div>
+                    <div class="btn-div reset-btn sm" (click)="resetApp()">
+                        <span class="material-icons">delete_outline</span>
+                        <span>Cancel & Reset</span>
+                    </div>
                 </div>
             </div>
 
@@ -340,12 +344,76 @@
             <!-- Image Preview Area -->
             <div class="image-preview-area" *ngIf="activeSlot">
                 <div class="preview-img-wrap" *ngIf="activeSlot.imageSrc; else noImg">
+
+                    <!-- Crop hint banner shown when cropping is active -->
+                    <div class="crop-hint-banner" *ngIf="isCropping">
+                        <span class="material-icons">crop</span>
+                        <span>Drag to select crop area — release to apply</span>
+                    </div>
+
                     <div class="crop-overlay" [class.cropping]="isCropping" (mousedown)="startCrop($event)"
                         (mousemove)="moveCrop($event)" (mouseup)="endCrop($event)">
+
+                        <!-- Main preview image -->
                         <img [src]="activeSlot.imageCropped || activeSlot.imageSrc" class="preview-main-img"
-                            alt="Preview" />
-                        <div class="crop-box" *ngIf="isCropping && cropBox" [ngStyle]="cropBox"></div>
+                            [class.img-dimmed]="isCropping" alt="Preview" />
+
+                        <!-- WhatsApp-style crop masks + box with handles -->
+                        <ng-container *ngIf="isCropping && cropBox">
+                            <!-- Dark overlay: top -->
+                            <div class="crop-mask" [ngStyle]="{
+                                    'top': '0',
+                                    'left': '0',
+                                    'width': '100%',
+                                    'height': cropBox['top']
+                                }">
+                            </div>
+                            <!-- Dark overlay: bottom -->
+                            <div class="crop-mask" [ngStyle]="{
+                                    'top': cropBox['top'] !== '0px' ? 'calc(' + cropBox['top'] + ' + ' + cropBox['height'] + ')' : cropBox['height'],
+                                    'left': '0',
+                                    'width': '100%',
+                                    'bottom': '0'
+                                }">
+                            </div>
+                            <!-- Dark overlay: left -->
+                            <div class="crop-mask" [ngStyle]="{
+                                    'top': cropBox['top'],
+                                    'left': '0',
+                                    'width': cropBox['left'],
+                                    'height': cropBox['height']
+                                }">
+                            </div>
+                            <!-- Dark overlay: right -->
+                            <div class="crop-mask crop-mask-right" [ngStyle]="{
+                                    'top': cropBox['top'],
+                                    'left': 'calc(' + cropBox['left'] + ' + ' + cropBox['width'] + ')',
+                                    'right': '0',
+                                    'height': cropBox['height']
+                                }">
+                            </div>
+
+                            <!-- Crop selection box with corner handles + grid -->
+                            <div class="crop-box" [ngStyle]="cropBox">
+                                <!-- Corner handles -->
+                                <div class="crop-handle tl"></div>
+                                <div class="crop-handle tr"></div>
+                                <div class="crop-handle bl"></div>
+                                <div class="crop-handle br"></div>
+                                <!-- Edge mid-handles -->
+                                <div class="crop-handle-mid top"></div>
+                                <div class="crop-handle-mid bottom"></div>
+                                <div class="crop-handle-mid left-mid"></div>
+                                <div class="crop-handle-mid right-mid"></div>
+                                <!-- Rule-of-thirds grid -->
+                                <div class="crop-grid-v" style="left: 33.33%"></div>
+                                <div class="crop-grid-v" style="left: 66.66%"></div>
+                                <div class="crop-grid-h" style="top: 33.33%"></div>
+                                <div class="crop-grid-h" style="top: 66.66%"></div>
+                            </div>
+                        </ng-container>
                     </div>
+
                     <div class="img-info">
                         <span class="material-icons">photo_size_select_large</span>
                         <span>{{ activeSlot.label }} loaded</span>
@@ -367,7 +435,7 @@
                     <div class="spinner" *ngIf="cropLoading"></div>
                     <span>Auto Crop</span>
                 </div>
-                <div class="btn-div crop-tool-btn" (click)="toggleManualCrop()">
+                <div class="btn-div crop-tool-btn" [class.active-crop]="isCropping" (click)="toggleManualCrop()">
                     <span class="material-icons">{{ isCropping ? 'crop_free' : 'crop' }}</span>
                     <span>{{ isCropping ? 'Cancel Crop' : 'Manual Crop' }}</span>
                 </div>

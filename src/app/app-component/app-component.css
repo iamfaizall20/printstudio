@@ -376,7 +376,6 @@
 
 .mobile-menu-item.download {
     color: #fff;
-    /* background: rgba(79, 142, 247, 0.15); */
     background: var(--accent);
 }
 
@@ -468,6 +467,29 @@
     color: var(--text-primary);
 }
 
+/* ─── Reset / Cancel & Reset button ─────────────────────────────────────── */
+.reset-btn {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.reset-btn:hover {
+    background: rgba(248, 113, 113, 0.18);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(248, 113, 113, 0.2);
+}
+
+:host(.light-theme) .reset-btn {
+    background: rgba(220, 38, 38, 0.07);
+    color: var(--danger);
+    border: 1px solid rgba(220, 38, 38, 0.28);
+}
+
+:host(.light-theme) .reset-btn:hover {
+    background: rgba(220, 38, 38, 0.13);
+}
+
 .crop-tool-btn {
     background: rgba(167, 139, 250, 0.1);
     color: var(--accent-2);
@@ -484,6 +506,14 @@
 .crop-tool-btn.loading {
     opacity: 0.7;
     cursor: wait;
+}
+
+/* Active state for Manual Crop button when cropping is active */
+.crop-tool-btn.active-crop {
+    background: rgba(79, 142, 247, 0.15);
+    color: var(--accent);
+    border-color: var(--border-accent);
+    box-shadow: 0 0 10px rgba(79, 142, 247, 0.2);
 }
 
 .btn-div.disabled {
@@ -1458,12 +1488,45 @@
     gap: 10px;
 }
 
+/* ─── Crop Hint Banner ───────────────────────────────────────────────────── */
+.crop-hint-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(79, 142, 247, 0.1);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--accent);
+    animation: fadeInDown 0.25s ease;
+}
+
+.crop-hint-banner .material-icons {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── Crop Overlay ───────────────────────────────────────────────────────── */
 .crop-overlay {
     position: relative;
     border-radius: var(--radius-md);
     overflow: hidden;
     border: 1px solid var(--border);
     cursor: default;
+    user-select: none;
 }
 
 .crop-overlay.cropping {
@@ -1476,15 +1539,138 @@
     max-height: 280px;
     object-fit: contain;
     background: var(--bg-card);
+    transition: opacity 0.2s ease;
 }
 
+/* Image dimmed while crop selection is being drawn */
+.preview-main-img.img-dimmed {
+    opacity: 0.55;
+}
+
+/* ─── WhatsApp-style Crop Dark Masks ─────────────────────────────────────── */
+.crop-mask {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.58);
+    pointer-events: none;
+    z-index: 2;
+    /* Smooth mask resize as user drags */
+    transition: top 0s, left 0s, width 0s, height 0s;
+}
+
+.crop-mask-right {
+    /* right edge mask needs width: auto handled via left + right */
+    width: auto;
+}
+
+/* ─── Crop Selection Box ─────────────────────────────────────────────────── */
 .crop-box {
     position: absolute;
-    border: 2px solid var(--accent);
-    background: rgba(79, 142, 247, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+    z-index: 3;
+    box-sizing: border-box;
+}
+
+/* ─── Corner Handles (L-shaped brackets like WhatsApp) ───────────────────── */
+.crop-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    z-index: 4;
+}
+
+.crop-handle.tl {
+    top: -2px;
+    left: -2px;
+    border-top: 3px solid var(--accent);
+    border-left: 3px solid var(--accent);
+    border-radius: 1px 0 0 0;
+}
+
+.crop-handle.tr {
+    top: -2px;
+    right: -2px;
+    border-top: 3px solid var(--accent);
+    border-right: 3px solid var(--accent);
+    border-radius: 0 1px 0 0;
+}
+
+.crop-handle.bl {
+    bottom: -2px;
+    left: -2px;
+    border-bottom: 3px solid var(--accent);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 0 0 1px;
+}
+
+.crop-handle.br {
+    bottom: -2px;
+    right: -2px;
+    border-bottom: 3px solid var(--accent);
+    border-right: 3px solid var(--accent);
+    border-radius: 0 0 1px 0;
+}
+
+/* ─── Edge Mid-point Handles ─────────────────────────────────────────────── */
+.crop-handle-mid {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+    z-index: 4;
+    border-radius: 2px;
+}
+
+.crop-handle-mid.top {
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 3px;
+}
+
+.crop-handle-mid.bottom {
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 3px;
+}
+
+.crop-handle-mid.left-mid {
+    left: -2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 22px;
+}
+
+.crop-handle-mid.right-mid {
+    right: -2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 22px;
+}
+
+/* ─── Rule-of-thirds grid lines inside crop box ──────────────────────────── */
+.crop-grid-v {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.22);
     pointer-events: none;
 }
 
+.crop-grid-h {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.22);
+    pointer-events: none;
+}
+
+/* ─── Img Info Row ───────────────────────────────────────────────────────── */
 .img-info {
     display: flex;
     align-items: center;
@@ -1767,5 +1953,9 @@
 
     .pdf-info-bar {
         gap: 12px;
+    }
+
+    .crop-hint-banner {
+        font-size: 11px;
     }
 }

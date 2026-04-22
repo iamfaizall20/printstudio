@@ -14,7 +14,7 @@ interface CnicSlot {
   confirmed: boolean;
   label: string;
   side: 'front' | 'back';
-  copies: number; // per-CNIC copy count
+  copies: number;
 }
 
 @Component({
@@ -29,10 +29,7 @@ export class AppComponent implements OnInit {
 
   @HostBinding('class.light-theme') isLightTheme = false;
 
-  // Fixed 8 slots per page
   readonly SLOTS_PER_PAGE = 8;
-
-  // Available copy counts per CNIC
   readonly COPY_OPTIONS = [2, 4, 6, 8];
 
   cnicDesigns: CnicSlot[] = [
@@ -48,7 +45,6 @@ export class AppComponent implements OnInit {
 
   mobileMenuOpen = false;
 
-  // Legacy — kept for refreshCopyOptions compat, not used for tiling anymore
   copyOptions: CopyOption[] = [];
   copiesDropdownOpen = false;
 
@@ -59,6 +55,8 @@ export class AppComponent implements OnInit {
 
   isLoading = false;
   loaderMessage = 'Processing...';
+
+  // ─── Getters ───────────────────────────────────────────────────────────────
 
   get confirmedDesigns(): CnicSlot[] {
     return this.cnicDesigns.filter(s => s.confirmed);
@@ -84,11 +82,41 @@ export class AppComponent implements OnInit {
     return this.cnicDesigns.filter(s => s.imageSrc !== null).length;
   }
 
+  get totalClaimedSlots(): number {
+    return this.getCnicPairs()
+      .filter(pair => pair.some(s => s.imageSrc))
+      .reduce((sum, _, pi) => sum + this.getPairCopies(pi), 0);
+  }
+
+  get slotsOverLimit(): boolean {
+    return this.totalClaimedSlots > this.SLOTS_PER_PAGE;
+  }
+
+  get hasBothSides(): boolean {
+    return this.confirmedFronts.length > 0 && this.confirmedBacks.length > 0;
+  }
+
+  get hasFrontOnly(): boolean {
+    return this.confirmedFronts.length > 0 && this.confirmedBacks.length === 0;
+  }
+
+  get hasBackOnly(): boolean {
+    return this.confirmedBacks.length > 0 && this.confirmedFronts.length === 0;
+  }
+
+  get activeSlot(): CnicSlot | null {
+    return this.cnicDesigns[this.activePreviewTab] ?? null;
+  }
+
+  // ─── Lifecycle ─────────────────────────────────────────────────────────────
+
   ngOnInit(): void {
     const saved = localStorage.getItem('printstudio-theme');
     if (saved === 'light') this.isLightTheme = true;
     this.refreshCopyOptions();
   }
+
+  // ─── Theme ─────────────────────────────────────────────────────────────────
 
   toggleTheme(): void {
     this.isLightTheme = !this.isLightTheme;
@@ -96,8 +124,12 @@ export class AppComponent implements OnInit {
     this.mobileMenuOpen = false;
   }
 
+  // ─── Mobile menu ───────────────────────────────────────────────────────────
+
   toggleMobileMenu(): void { this.mobileMenuOpen = !this.mobileMenuOpen; }
   closeMobileMenu(): void { this.mobileMenuOpen = false; }
+
+  // ─── Upload dialog ─────────────────────────────────────────────────────────
 
   openUploadDialog(): void {
     this.mobileMenuOpen = false;
@@ -141,7 +173,8 @@ export class AppComponent implements OnInit {
     reader.readAsDataURL(file);
   }
 
-  /** Returns slots grouped into pairs: [[front1, back1], [front2, back2], ...] */
+  // ─── Pair management ───────────────────────────────────────────────────────
+
   getCnicPairs(): CnicSlot[][] {
     const pairs: CnicSlot[][] = [];
     for (let i = 0; i < this.cnicDesigns.length; i += 2) {
@@ -152,7 +185,6 @@ export class AppComponent implements OnInit {
     return pairs;
   }
 
-  /** Add a full front+back pair at once */
   addPair(): void {
     if (this.cnicDesigns.length >= 8) return;
     const pairNum = this.getCnicPairs().length + 1;
@@ -164,7 +196,6 @@ export class AppComponent implements OnInit {
     this.refreshCopyOptions();
   }
 
-  /** Remove an entire pair (front+back) by pair index */
   removePair(pairIndex: number): void {
     if (this.getCnicPairs().length <= 1) return;
     const startIndex = pairIndex * 2;
@@ -176,34 +207,17 @@ export class AppComponent implements OnInit {
     this.refreshCopyOptions();
   }
 
-  /**
-   * Set copies for ALL slots in a pair (front + back share the same count).
-   * When one side's copies changes, sync the paired opposite side too.
-   */
   setPairCopies(pairIndex: number, copies: number): void {
     const startIndex = pairIndex * 2;
     if (this.cnicDesigns[startIndex]) this.cnicDesigns[startIndex].copies = copies;
     if (this.cnicDesigns[startIndex + 1]) this.cnicDesigns[startIndex + 1].copies = copies;
   }
 
-  /** Get copies for a pair (reads from front slot of pair) */
   getPairCopies(pairIndex: number): number {
     return this.cnicDesigns[pairIndex * 2]?.copies ?? 4;
   }
 
-  /**
-   * Returns how many total slots are claimed by uploaded pairs.
-   * Used to warn when total > 8.
-   */
-  get totalClaimedSlots(): number {
-    return this.getCnicPairs()
-      .filter(pair => pair.some(s => s.imageSrc))
-      .reduce((sum, _, pi) => sum + this.getPairCopies(pi), 0);
-  }
-
-  get slotsOverLimit(): boolean {
-    return this.totalClaimedSlots > this.SLOTS_PER_PAGE;
-  }
+  // ─── Upload confirm ────────────────────────────────────────────────────────
 
   confirmUpload(): void {
     if (!this.cnicDesigns.some(s => s.imageSrc)) return;
@@ -214,6 +228,8 @@ export class AppComponent implements OnInit {
       document.body.style.overflow = 'hidden';
     }, 150);
   }
+
+  // ─── Preview / crop dialog ─────────────────────────────────────────────────
 
   closePreviewDialog(): void {
     this.showPreviewDialog = false;
@@ -228,11 +244,9 @@ export class AppComponent implements OnInit {
     this.cropBox = null;
   }
 
-  get activeSlot(): CnicSlot | null {
-    return this.cnicDesigns[this.activePreviewTab] ?? null;
-  }
-
   activeTabHasCrop(): boolean { return !!this.activeSlot?.imageCropped; }
+
+  // ─── Auto crop ─────────────────────────────────────────────────────────────
 
   autoCrop(): void {
     const slot = this.activeSlot;
@@ -247,14 +261,22 @@ export class AppComponent implements OnInit {
       const canvas = document.createElement('canvas');
       const cropW = img.width * 0.9;
       const cropH = img.height * 0.85;
-      canvas.width = cropW; canvas.height = cropH;
-      canvas.getContext('2d')!.drawImage(img, img.width * 0.05, img.height * 0.075, cropW, cropH, 0, 0, cropW, cropH);
+      canvas.width = cropW;
+      canvas.height = cropH;
+      canvas.getContext('2d')!.drawImage(
+        img,
+        img.width * 0.05, img.height * 0.075,
+        cropW, cropH,
+        0, 0, cropW, cropH
+      );
       slot.imageCropped = canvas.toDataURL('image/jpeg', 0.92);
       if (done) done();
     };
     img.onerror = () => { if (done) done(); };
     img.src = src;
   }
+
+  // ─── Manual crop ───────────────────────────────────────────────────────────
 
   toggleManualCrop(): void {
     this.isCropping = !this.isCropping;
@@ -263,39 +285,81 @@ export class AppComponent implements OnInit {
 
   startCrop(e: MouseEvent): void {
     if (!this.isCropping) return;
-    this.cropStart = { x: e.offsetX, y: e.offsetY };
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    this.cropStart = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+    // Reset the crop box on new drag start
+    this.cropBox = null;
   }
 
   moveCrop(e: MouseEvent): void {
     if (!this.isCropping || !this.cropStart) return;
-    const x = Math.min(this.cropStart.x, e.offsetX);
-    const y = Math.min(this.cropStart.y, e.offsetY);
-    this.cropBox = { left: x + 'px', top: y + 'px', width: Math.abs(e.offsetX - this.cropStart.x) + 'px', height: Math.abs(e.offsetY - this.cropStart.y) + 'px' };
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+
+    const x = Math.min(this.cropStart.x, currentX);
+    const y = Math.min(this.cropStart.y, currentY);
+    const w = Math.abs(currentX - this.cropStart.x);
+    const h = Math.abs(currentY - this.cropStart.y);
+
+    // Only show box once the user has dragged a meaningful distance
+    if (w > 5 || h > 5) {
+      this.cropBox = {
+        left: x + 'px',
+        top: y + 'px',
+        width: w + 'px',
+        height: h + 'px',
+      };
+    }
   }
 
   endCrop(e: MouseEvent): void {
     if (!this.isCropping || !this.cropStart || !this.activeSlot?.imageSrc) return;
-    if (this.cropBox) this.applyManualCrop(this.activeSlot.imageSrc, this.activeSlot);
-    this.isCropping = false; this.cropStart = null; this.cropBox = null;
+
+    if (this.cropBox) {
+      this.applyManualCrop(this.activeSlot.imageSrc, this.activeSlot);
+    }
+
+    this.isCropping = false;
+    this.cropStart = null;
+    this.cropBox = null;
   }
 
   private applyManualCrop(src: string, slot: CnicSlot): void {
     if (!this.cropBox) return;
+
+    const imgEl = document.querySelector('.preview-main-img') as HTMLImageElement;
+    if (!imgEl) return;
+
     const img = new Image();
     img.onload = () => {
-      const imgEl = document.querySelector('.preview-main-img') as HTMLImageElement;
-      if (!imgEl) return;
-      const scaleX = img.naturalWidth / imgEl.clientWidth;
-      const scaleY = img.naturalHeight / imgEl.clientHeight;
-      const cropX = parseInt(this.cropBox!['left']) * scaleX;
-      const cropY = parseInt(this.cropBox!['top']) * scaleY;
-      const cropW = parseInt(this.cropBox!['width']) * scaleX;
-      const cropH = parseInt(this.cropBox!['height']) * scaleY;
+      const rect = imgEl.getBoundingClientRect();
+      const scaleX = img.naturalWidth / rect.width;
+      const scaleY = img.naturalHeight / rect.height;
+
+      const cropX = parseFloat(this.cropBox!['left']) * scaleX;
+      const cropY = parseFloat(this.cropBox!['top']) * scaleY;
+      const cropW = parseFloat(this.cropBox!['width']) * scaleX;
+      const cropH = parseFloat(this.cropBox!['height']) * scaleY;
+
       if (cropW < 10 || cropH < 10) return;
+
       const canvas = document.createElement('canvas');
-      canvas.width = cropW; canvas.height = cropH;
-      canvas.getContext('2d')!.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-      slot.imageCropped = canvas.toDataURL('image/jpeg', 0.92);
+      canvas.width = cropW;
+      canvas.height = cropH;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+      slot.imageCropped = canvas.toDataURL('image/jpeg', 0.95);
+      slot.confirmed = false;
     };
     img.src = src;
   }
@@ -304,6 +368,8 @@ export class AppComponent implements OnInit {
     if (this.activeSlot) this.activeSlot.imageCropped = null;
     this.cropBox = null;
   }
+
+  // ─── Confirm preview ───────────────────────────────────────────────────────
 
   confirmPreview(): void {
     this.cnicDesigns.forEach(s => { if (s.imageSrc) s.confirmed = true; });
@@ -315,6 +381,8 @@ export class AppComponent implements OnInit {
     this.isLoading = true;
     setTimeout(() => { this.isLoading = false; }, 700);
   }
+
+  // ─── Copy options (legacy compat) ──────────────────────────────────────────
 
   refreshCopyOptions(): void {
     const hasImages = this.cnicDesigns.some(s => s.imageSrc !== null);
@@ -332,16 +400,11 @@ export class AppComponent implements OnInit {
 
   closeCopiesDropdown(): void { this.copiesDropdownOpen = false; }
 
-  /**
-   * Build tiled slots for a page from an ordered list of designs with their copy counts.
-   * Each design occupies exactly `design.copies` consecutive slots.
-   * If total copies < 8, remaining slots wrap back from the first design.
-   * If total copies > 8, slots are capped at SLOTS_PER_PAGE.
-   */
+  // ─── Page slot builders ────────────────────────────────────────────────────
+
   private buildPageSlots(
     designs: CnicSlot[]
   ): Array<{ imageSrc: string | null; label: string; isEmpty: boolean; slotIndex: number }> {
-    // Build the full ordered sequence: [CNIC1 × copies, CNIC2 × copies, ...]
     const sequence: CnicSlot[] = [];
     for (const design of designs) {
       for (let c = 0; c < design.copies; c++) {
@@ -350,19 +413,10 @@ export class AppComponent implements OnInit {
     }
 
     return Array.from({ length: this.SLOTS_PER_PAGE }, (_, i) => {
-
-      // ✅ EMPTY SLOT CONDITION
       if (i >= sequence.length) {
-        return {
-          imageSrc: null,
-          label: '',
-          isEmpty: true,
-          slotIndex: i,
-        };
+        return { imageSrc: null, label: '', isEmpty: true, slotIndex: i };
       }
-
       const design = sequence[i];
-
       return {
         imageSrc: design.imageCropped || design.imageSrc,
         label: design.label,
@@ -380,20 +434,8 @@ export class AppComponent implements OnInit {
     return this.buildPageSlots(this.confirmedBacks);
   }
 
-  /** Check if we have both front and back confirmed designs */
-  get hasBothSides(): boolean {
-    return this.confirmedFronts.length > 0 && this.confirmedBacks.length > 0;
-  }
+  // ─── PDF Download ──────────────────────────────────────────────────────────
 
-  get hasFrontOnly(): boolean {
-    return this.confirmedFronts.length > 0 && this.confirmedBacks.length === 0;
-  }
-
-  get hasBackOnly(): boolean {
-    return this.confirmedBacks.length > 0 && this.confirmedFronts.length === 0;
-  }
-
-  // ─── PDF Download ─────────────────────────────────────────────────────────
   async downloadPDF(): Promise<void> {
     if (!this.anyConfirmed) return;
     this.mobileMenuOpen = false;
@@ -401,8 +443,7 @@ export class AppComponent implements OnInit {
     this.isLoading = true;
 
     try {
-      const cols = 2;
-      const rows = 4;
+      const cols = 2, rows = 4;
       const pageW = 210, pageH = 297;
       const margin = 10, gap = 5;
       const printW = pageW - margin * 2;
@@ -420,23 +461,15 @@ export class AppComponent implements OnInit {
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-      /**
-       * Draw one A4 page using the same sequence logic as buildPageSlots().
-       * Builds [CNIC1×copies, CNIC2×copies, ...] then wraps to fill 8 slots.
-       */
       const drawPage = (designs: CnicSlot[], pageLabel: string) => {
-        // Build sequence identical to buildPageSlots
         const sequence: CnicSlot[] = [];
         for (const design of designs) {
-          for (let c = 0; c < design.copies; c++) {
-            sequence.push(design);
-          }
+          for (let c = 0; c < design.copies; c++) sequence.push(design);
         }
         if (sequence.length === 0) return;
 
         for (let i = 0; i < this.SLOTS_PER_PAGE; i++) {
           if (i >= sequence.length) continue;
-
           const design = sequence[i];
           const src = design.imageCropped || design.imageSrc;
           if (!src) continue;
@@ -448,7 +481,7 @@ export class AppComponent implements OnInit {
           const fmt = src.startsWith('data:image/png') ? 'PNG' : 'JPEG';
           pdf.addImage(src, fmt, x, y, imgW, imgH);
         }
-        // Footer
+
         pdf.setFontSize(7);
         pdf.setTextColor(180, 180, 180);
         pdf.text(pageLabel, pageW / 2, pageH - 3, { align: 'center' });
@@ -480,44 +513,23 @@ export class AppComponent implements OnInit {
       this.resetApp();
     }
   }
-  resetApp(): void {
 
-    // Reset all CNIC slots
+  // ─── Reset ─────────────────────────────────────────────────────────────────
+
+  resetApp(): void {
     this.cnicDesigns = [
-      {
-        id: 1,
-        imageSrc: null,
-        imageCropped: null,
-        confirmed: false,
-        label: 'CNIC 1 — Front',
-        side: 'front',
-        copies: 4
-      },
-      {
-        id: 2,
-        imageSrc: null,
-        imageCropped: null,
-        confirmed: false,
-        label: 'CNIC 1 — Back',
-        side: 'back',
-        copies: 4
-      }
+      { id: 1, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Front', side: 'front', copies: 4 },
+      { id: 2, imageSrc: null, imageCropped: null, confirmed: false, label: 'CNIC 1 — Back', side: 'back', copies: 4 },
     ];
 
-    // Reset UI states
     this.showPreviewDialog = false;
     this.showUploadDialog = false;
     this.activePreviewTab = 0;
-
     this.isCropping = false;
     this.cropBox = null;
-
     this.mobileMenuOpen = false;
 
-    // Reset counters
     this.refreshCopyOptions();
-
-    // Restore scroll
     document.body.style.overflow = '';
   }
 }
