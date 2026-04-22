@@ -437,43 +437,54 @@ export class AppComponent implements OnInit {
    * Called on mousedown — records where the drag started.
    * Does NOT create a crop box yet; that happens in moveCrop.
    */
-  startCrop(e: MouseEvent): void {
+  startCrop(e: MouseEvent | TouchEvent): void {
     if (!this.isCropping) return;
     e.preventDefault();
 
+    const point = this.getPoint(e);
     const overlay = e.currentTarget as HTMLElement;
     const rect = overlay.getBoundingClientRect();
 
     this.cropStart = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: point.x - rect.left,
+      y: point.y - rect.top,
     };
+
     this.isDragging = true;
-    // Reset any existing box so the user starts fresh
     this.cropBox = null;
   }
+  private getPoint(e: MouseEvent | TouchEvent) {
+    if ('touches' in e && e.touches.length) {
+      return {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    }
 
+    return {
+      x: (e as MouseEvent).clientX,
+      y: (e as MouseEvent).clientY,
+    };
+  }
   /**
    * Called on mousemove — draws the selection box only while dragging.
    */
-  moveCrop(e: MouseEvent): void {
-    // Only act when the mouse button is held down after a startCrop
+  moveCrop(e: MouseEvent | TouchEvent): void {
     if (!this.isCropping || !this.isDragging || !this.cropStart) return;
     e.preventDefault();
 
+    const point = this.getPoint(e);
     const overlay = e.currentTarget as HTMLElement;
     const rect = overlay.getBoundingClientRect();
 
-    // Current pointer position relative to the overlay
-    const currentX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    const currentY = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+    const currentX = Math.max(0, Math.min(point.x - rect.left, rect.width));
+    const currentY = Math.max(0, Math.min(point.y - rect.top, rect.height));
 
     const x = Math.min(this.cropStart.x, currentX);
     const y = Math.min(this.cropStart.y, currentY);
     const w = Math.abs(currentX - this.cropStart.x);
     const h = Math.abs(currentY - this.cropStart.y);
 
-    // Only render the box once the drag is meaningful (> 8px in any direction)
     if (w > 8 || h > 8) {
       this.cropBox = {
         left: x + 'px',
@@ -483,16 +494,20 @@ export class AppComponent implements OnInit {
       };
     }
   }
-
   /**
    * Called on mouseup — applies the crop and exits crop mode.
    */
-  endCrop(e: MouseEvent): void {
+  endCrop(e: MouseEvent | TouchEvent): void {
     if (!this.isCropping || !this.isDragging) return;
+
     this.isDragging = false;
 
     if (this.cropBox && this.activeSlot?.imageSrc) {
-      this.applyManualCrop(this.activeSlot.imageSrc, this.activeSlot, e.currentTarget as HTMLElement);
+      this.applyManualCrop(
+        this.activeSlot.imageSrc,
+        this.activeSlot,
+        e.currentTarget as HTMLElement
+      );
     }
 
     this.isCropping = false;

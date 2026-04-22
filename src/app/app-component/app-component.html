@@ -353,7 +353,8 @@
                     </div>
 
                     <div class="crop-overlay" [class.cropping]="isCropping" (mousedown)="startCrop($event)"
-                        (mousemove)="moveCrop($event)" (mouseup)="endCrop($event)">
+                        (mousemove)="moveCrop($event)" (mouseup)="endCrop($event)" (touchstart)="startCrop($event)"
+                        (touchmove)="moveCrop($event)" (touchend)="endCrop($event)">
 
                         <!-- Main preview image -->
                         <img [src]="activeSlot.imageCropped || activeSlot.imageSrc" class="preview-main-img"

@@ -1526,6 +1526,7 @@
     border: 1px solid var(--border);
     cursor: default;
     user-select: none;
+    touch-action: none;
 }
 
 .crop-overlay.cropping {
