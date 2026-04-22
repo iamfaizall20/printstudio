@@ -97,10 +97,7 @@ src/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/printstudio.git
-
-# Navigate into the project
-cd printstudio
+https://github.com/iamfaizall20/printstudio.git
 
 # Install dependencies
 npm install
