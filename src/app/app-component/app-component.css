@@ -1,4 +1,3 @@
-/* ── Dark theme (default) ── */
 :host {
     --bg-base: #0d0e12;
     --bg-surface: #13141a;
@@ -41,7 +40,6 @@
     --shadow-accent: 0 0 24px rgba(79, 142, 247, 0.2);
 }
 
-/* ── Light theme override ── */
 :host(.light-theme) {
     --bg-base: #f0f2f7;
     --bg-surface: #ffffff;
@@ -125,7 +123,6 @@
     box-shadow: 0 6px 20px rgba(37, 99, 235, 0.42);
 }
 
-/* Theme toggle */
 .theme-toggle {
     display: flex;
     align-items: center;
@@ -221,7 +218,6 @@
     z-index: 0;
 }
 
-/* ─── Navbar ─────────────────────────────────────────────────────────────── */
 .navbar {
     position: sticky;
     top: 0;
@@ -277,7 +273,6 @@
     display: flex;
 }
 
-/* ─── Hamburger ──────────────────────────────────────────────────────────── */
 .hamburger {
     display: none;
     flex-direction: column;
@@ -320,7 +315,6 @@
     background: var(--accent);
 }
 
-/* ─── Mobile Menu ────────────────────────────────────────────────────────── */
 .mobile-menu {
     position: fixed;
     top: 70px;
@@ -396,7 +390,6 @@
     background: transparent;
 }
 
-/* ─── Button Divs ────────────────────────────────────────────────────────── */
 .btn-div {
     display: inline-flex;
     align-items: center;
@@ -466,7 +459,6 @@
     color: var(--text-primary);
 }
 
-/* ─── Reset / Cancel & Reset button ─────────────────────────────────────── */
 .reset-btn {
     background: var(--danger-light);
     color: var(--danger);
@@ -507,7 +499,6 @@
     cursor: wait;
 }
 
-/* Active state for Manual Crop button when cropping is active */
 .crop-tool-btn.active-crop {
     background: rgba(79, 142, 247, 0.15);
     color: var(--accent);
@@ -537,7 +528,6 @@
     border-radius: 8px;
 }
 
-/* ─── Hero Page ──────────────────────────────────────────────────────────── */
 .hero-page {
     flex: 1;
     position: relative;
@@ -548,7 +538,6 @@
     align-items: center;
 }
 
-/* ─── Empty State ────────────────────────────────────────────────────────── */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -666,7 +655,6 @@
     font-size: 20px;
 }
 
-/* ─── Preview Section ────────────────────────────────────────────────────── */
 .preview-section {
     width: 100%;
     max-width: 1000px;
@@ -720,7 +708,6 @@
     flex-wrap: wrap;
 }
 
-/* ─── A4 Pages — Two-Page Layout ─────────────────────────────────────────── */
 .a4-pages-wrap {
     display: flex;
     gap: 0;
@@ -774,7 +761,6 @@
     font-weight: 400;
 }
 
-/* Pages Divider (between front and back pages) */
 .pages-divider {
     display: flex;
     flex-direction: column;
@@ -810,7 +796,6 @@
     color: var(--text-muted);
 }
 
-/* A4 Page — Fixed 8 slots always */
 .a4-page {
     background: #ffffff;
     border-radius: 4px;
@@ -846,7 +831,6 @@
     transform: translateY(-4px);
 }
 
-/* Fixed 8-slot grid: 2 cols × 4 rows */
 .a4-grid {
     width: 100%;
     height: 100%;
@@ -934,7 +918,6 @@
     opacity: 1;
 }
 
-/* ─── PDF Info Bar ───────────────────────────────────────────────────────── */
 .pdf-info-bar {
     display: flex;
     align-items: center;
@@ -959,7 +942,6 @@
     color: var(--accent);
 }
 
-/* ─── Dialog Overlay ─────────────────────────────────────────────────────── */
 .dialog-overlay {
     position: fixed;
     inset: 0;
@@ -969,7 +951,6 @@
     z-index: 300;
 }
 
-/* ─── Dialog Base ────────────────────────────────────────────────────────── */
 .dialog {
     position: fixed;
     top: 50%;
@@ -1076,7 +1057,6 @@
     flex-shrink: 0;
 }
 
-/* ─── Upload Dialog Content ──────────────────────────────────────────────── */
 .dialog-hint {
     display: flex;
     align-items: center;
@@ -1095,7 +1075,6 @@
     flex-shrink: 0;
 }
 
-/* ─── Upload Slots Grid (pair-based layout) ──────────────────────────────── */
 .upload-slots-grid {
     display: flex;
     flex-direction: column;
@@ -1227,7 +1206,6 @@
     color: var(--text-secondary);
 }
 
-/* ─── Per-CNIC Copy Selector ─────────────────────────────────────────────── */
 .pair-copies-row {
     display: flex;
     align-items: center;
@@ -1298,7 +1276,6 @@
     color: var(--accent);
 }
 
-/* ─── Slot Usage Bar ─────────────────────────────────────────────────────── */
 .slot-usage-bar {
     display: flex;
     flex-direction: column;
@@ -1399,7 +1376,6 @@
     min-width: 2px;
 }
 
-/* ─── Add Slot Row ───────────────────────────────────────────────────────── */
 .add-slot-row {
     display: flex;
     align-items: center;
@@ -1427,7 +1403,6 @@
     font-style: italic;
 }
 
-/* ─── Preview Dialog Content ─────────────────────────────────────────────── */
 .tab-bar {
     display: flex;
     border-bottom: 1px solid var(--border);
@@ -1487,7 +1462,6 @@
     gap: 10px;
 }
 
-/* ─── Crop Hint Banner ───────────────────────────────────────────────────── */
 .crop-hint-banner {
     display: flex;
     align-items: center;
@@ -1518,7 +1492,6 @@
     }
 }
 
-/* ─── Crop Overlay ───────────────────────────────────────────────────────── */
 .crop-overlay {
     position: relative;
     border-radius: var(--radius-md);
@@ -1542,27 +1515,22 @@
     transition: opacity 0.2s ease;
 }
 
-/* Image dimmed while crop selection is being drawn */
 .preview-main-img.img-dimmed {
     opacity: 0.55;
 }
 
-/* ─── WhatsApp-style Crop Dark Masks ─────────────────────────────────────── */
 .crop-mask {
     position: absolute;
     background: rgba(0, 0, 0, 0.58);
     pointer-events: none;
     z-index: 2;
-    /* Smooth mask resize as user drags */
     transition: top 0s, left 0s, width 0s, height 0s;
 }
 
 .crop-mask-right {
-    /* right edge mask needs width: auto handled via left + right */
     width: auto;
 }
 
-/* ─── Crop Selection Box ─────────────────────────────────────────────────── */
 .crop-box {
     position: absolute;
     border: 1.5px solid rgba(255, 255, 255, 0.9);
@@ -1571,7 +1539,6 @@
     box-sizing: border-box;
 }
 
-/* ─── Corner Handles (L-shaped brackets like WhatsApp) ───────────────────── */
 .crop-handle {
     position: absolute;
     width: 20px;
@@ -1611,7 +1578,6 @@
     border-radius: 0 0 1px 0;
 }
 
-/* ─── Edge Mid-point Handles ─────────────────────────────────────────────── */
 .crop-handle-mid {
     position: absolute;
     background: rgba(255, 255, 255, 0.85);
@@ -1651,7 +1617,6 @@
     height: 22px;
 }
 
-/* ─── Rule-of-thirds grid lines inside crop box ──────────────────────────── */
 .crop-grid-v {
     position: absolute;
     top: 0;
@@ -1670,7 +1635,6 @@
     pointer-events: none;
 }
 
-/* ─── Img Info Row ───────────────────────────────────────────────────────── */
 .img-info {
     display: flex;
     align-items: center;
@@ -1729,7 +1693,6 @@
     flex-wrap: wrap;
 }
 
-/* ─── Global Loader ──────────────────────────────────────────────────────── */
 .global-loader {
     position: fixed;
     inset: 0;
@@ -1781,7 +1744,6 @@
     }
 }
 
-/* ─── Footer ─────────────────────────────────────────────────────────────── */
 .footer {
     position: relative;
     z-index: 1;
@@ -1815,7 +1777,6 @@
     color: var(--border-hover);
 }
 
-/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -1834,7 +1795,6 @@
     background: rgba(255, 255, 255, 0.18);
 }
 
-/* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 760px) {
     .flow-steps {
         flex-direction: column;

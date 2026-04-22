@@ -108,7 +108,6 @@
                 <div class="preview-header-left">
                     <span class="material-icons">preview</span>
                     <h2>A4 Print Preview</h2>
-                    <span class="preview-badge">8 slots per page</span>
                 </div>
                 <div class="preview-controls">
                     <div class="btn-div upload-btn sm" (click)="openUploadDialog()">
@@ -152,7 +151,6 @@
                     <div class="divider-line"></div>
                     <span class="divider-label">
                         <span class="material-icons">flip</span>
-                        <span>Flip Side</span>
                     </span>
                     <div class="divider-line"></div>
                 </div>
@@ -180,22 +178,7 @@
                 </div>
 
             </div>
-
-            <!-- PDF Info -->
-            <div class="pdf-info-bar">
-                <div class="pdf-info-item">
-                    <span class="material-icons">description</span>
-                    <span>{{ hasBothSides ? '2 pages' : '1 page' }} in PDF</span>
-                </div>
-                <div class="pdf-info-item">
-                    <span class="material-icons">grid_view</span>
-                    <span>8 cards per page (2 × 4 grid)</span>
-                </div>
-                <div class="pdf-info-item" *ngIf="hasBothSides">
-                    <span class="material-icons">flip</span>
-                    <span>Page 1: Front · Page 2: Back</span>
-                </div>
-            </div>
+            
         </div>
     </div>
 

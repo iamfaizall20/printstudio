@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, HostBinding, OnInit, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
 import jsPDF from 'jspdf';
 declare const cv: any;
 
@@ -453,6 +452,7 @@ export class AppComponent implements OnInit {
     this.isDragging = true;
     this.cropBox = null;
   }
+
   private getPoint(e: MouseEvent | TouchEvent) {
     if ('touches' in e && e.touches.length) {
       return {
@@ -655,8 +655,6 @@ export class AppComponent implements OnInit {
     return this.buildPageSlots(this.confirmedBacks);
   }
 
-  // ─── PDF Download ──────────────────────────────────────────────────────────
-
   async downloadPDF(): Promise<void> {
     if (!this.anyConfirmed) return;
     this.mobileMenuOpen = false;
@@ -734,8 +732,6 @@ export class AppComponent implements OnInit {
       this.resetApp();
     }
   }
-
-  // ─── Reset ─────────────────────────────────────────────────────────────────
 
   resetApp(): void {
     this.cnicDesigns = [
